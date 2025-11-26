@@ -9,10 +9,69 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      organizations: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          slug: string
+          settings: Json
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          slug: string
+          settings?: Json
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          slug?: string
+          settings?: Json
+          is_active?: boolean
+        }
+      }
+      profiles: {
+        Row: {
+          id: string
+          organization_id: string | null  // NULL para super admins
+          created_at: string
+          full_name: string
+          role: 'admin' | 'doctor' | 'assistant'
+          avatar_url: string | null
+          is_active: boolean
+          is_super_admin: boolean  // TRUE para super admins
+        }
+        Insert: {
+          id: string
+          organization_id?: string | null  // NULL para super admins
+          created_at?: string
+          full_name: string
+          role?: 'admin' | 'doctor' | 'assistant'
+          avatar_url?: string | null
+          is_active?: boolean
+          is_super_admin?: boolean
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          created_at?: string
+          full_name?: string
+          role?: 'admin' | 'doctor' | 'assistant'
+          avatar_url?: string | null
+          is_active?: boolean
+          is_super_admin?: boolean
+        }
+      }
       patients: {
         Row: {
           id: string
           created_at: string
+          organization_id: string
           name: string
           email: string
           phone: string
@@ -23,6 +82,7 @@ export interface Database {
         Insert: {
           id?: string
           created_at?: string
+          organization_id: string
           name: string
           email: string
           phone: string
@@ -33,6 +93,7 @@ export interface Database {
         Update: {
           id?: string
           created_at?: string
+          organization_id?: string
           name?: string
           email?: string
           phone?: string
@@ -45,6 +106,7 @@ export interface Database {
         Row: {
           id: string
           created_at: string
+          organization_id: string
           date: string
           time: string
           start_datetime: string | null  // TEXT: formato ISO8601 com TZ (2025-11-25T09:00:00-03:00)
@@ -59,6 +121,7 @@ export interface Database {
         Insert: {
           id?: string
           created_at?: string
+          organization_id: string
           date: string
           time: string
           start_datetime?: string | null  // TEXT: formato ISO8601 com TZ (2025-11-25T09:00:00-03:00)
@@ -73,6 +136,7 @@ export interface Database {
         Update: {
           id?: string
           created_at?: string
+          organization_id?: string
           date?: string
           time?: string
           start_datetime?: string | null  // TEXT: formato ISO8601 com TZ (2025-11-25T09:00:00-03:00)
@@ -89,6 +153,7 @@ export interface Database {
         Row: {
           id: string
           created_at: string
+          organization_id: string
           clinic_name: string
           doctor_name: string
           subscription_plan: string
@@ -97,6 +162,7 @@ export interface Database {
         Insert: {
           id?: string
           created_at?: string
+          organization_id: string
           clinic_name: string
           doctor_name: string
           subscription_plan?: string
@@ -105,6 +171,7 @@ export interface Database {
         Update: {
           id?: string
           created_at?: string
+          organization_id?: string
           clinic_name?: string
           doctor_name?: string
           subscription_plan?: string

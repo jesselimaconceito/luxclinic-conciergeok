@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock, User, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOrganization } from "@/hooks/useOrganization";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export default function Agenda() {
   const { data: patients = [] } = usePatients();
   const createAppointment = useCreateAppointment();
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -378,8 +380,15 @@ export default function Agenda() {
         endISO: endISOForWebhook
       });
 
+      // Validar organization_id
+      if (!organizationId) {
+        toast.error("Erro: Organização não identificada");
+        return;
+      }
+
       // 1. Criar no banco de dados
       const newAppointment = await createAppointment.mutateAsync({
+        organization_id: organizationId,
         date: formData.start_date,
         time: formData.start_time,
         start_datetime: startISOForDB,

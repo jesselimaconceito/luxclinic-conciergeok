@@ -9,9 +9,9 @@ npm install @supabase/supabase-js
 
 ### 2. Variáveis de Ambiente (.env)
 ```env
-VITE_SUPABASE_PROJECT_ID="xpmdzllctbtwmrzjzkni"
+VITE_SUPABASE_PROJECT_ID="usidtjpjymomofyqolwe"
 VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGc..."
-VITE_SUPABASE_URL="https://xpmdzllctbtwmrzjzkni.supabase.co"
+VITE_SUPABASE_URL="https://usidtjpjymomofyqolwe.supabase.co"
 ```
 
 ### 3. Estrutura Criada
@@ -29,7 +29,7 @@ VITE_SUPABASE_URL="https://xpmdzllctbtwmrzjzkni.supabase.co"
 ### 1. Criar as Tabelas no Supabase
 
 **Opção A: Via Dashboard Supabase**
-1. Acesse: https://supabase.com/dashboard/project/xpmdzllctbtwmrzjzkni
+1. Acesse: https://supabase.com/dashboard/project/usidtjpjymomofyqolwe
 2. Vá em **SQL Editor**
 3. Copie e execute o conteúdo de `supabase/migrations/001_initial_schema.sql`
 

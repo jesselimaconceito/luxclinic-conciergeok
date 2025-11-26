@@ -1,0 +1,232 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Plus, Pencil, Power, PowerOff, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  created_at: string;
+  settings: any;
+}
+
+export default function Organizations() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [toggleOrgId, setToggleOrgId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Buscar organizações
+  const { data: organizations, isLoading } = useQuery<Organization[]>({
+    queryKey: ["super-admin-organizations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Toggle status da organização
+  const toggleStatus = useMutation({
+    mutationFn: async ({ orgId, newStatus }: { orgId: string; newStatus: boolean }) => {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ is_active: newStatus })
+        .eq("id", orgId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-organizations"] });
+      toast.success("Status atualizado com sucesso!");
+      setToggleOrgId(null);
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao atualizar status da organização");
+    },
+  });
+
+  // Filtrar organizações pela busca
+  const filteredOrganizations = organizations?.filter((org) =>
+    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    org.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-purple-100">Organizações</h1>
+          <p className="text-purple-400 mt-1">
+            Gerencie todas as clínicas e consultórios
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/super-admin/organizations/new")}
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Organização
+        </Button>
+      </div>
+
+      {/* Search */}
+      <Card className="border-purple-800/30 bg-slate-900/40 backdrop-blur-xl">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-400" />
+            <Input
+              placeholder="Buscar por nome ou slug..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-slate-800/40 border-purple-800/30 text-purple-100 placeholder:text-purple-400/50"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Organizations List */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredOrganizations?.map((org) => (
+          <Card
+            key={org.id}
+            className="border-purple-800/30 bg-slate-900/40 backdrop-blur-xl hover:border-purple-600/50 transition-all"
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-purple-100">{org.name}</CardTitle>
+                  <CardDescription className="text-purple-400 mt-1">
+                    {org.slug}
+                  </CardDescription>
+                </div>
+                <Badge
+                  variant={org.is_active ? "default" : "destructive"}
+                  className={
+                    org.is_active
+                      ? "bg-green-600/20 text-green-300 hover:bg-green-600/30"
+                      : "bg-red-600/20 text-red-300 hover:bg-red-600/30"
+                  }
+                >
+                  {org.is_active ? "Ativa" : "Inativa"}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-purple-400 mb-4">
+                Criada em {new Date(org.created_at).toLocaleDateString("pt-BR")}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/super-admin/organizations/${org.id}/edit`)}
+                  className="flex-1 border-purple-600/30 text-purple-300 hover:bg-purple-800/30 hover:text-purple-100"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setToggleOrgId(org.id)}
+                  className={`border-purple-600/30 ${
+                    org.is_active
+                      ? "text-red-300 hover:bg-red-900/30 hover:text-red-100"
+                      : "text-green-300 hover:bg-green-900/30 hover:text-green-100"
+                  }`}
+                >
+                  {org.is_active ? (
+                    <PowerOff className="h-4 w-4" />
+                  ) : (
+                    <Power className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {(!filteredOrganizations || filteredOrganizations.length === 0) && (
+        <Card className="border-purple-800/30 bg-slate-900/40 backdrop-blur-xl">
+          <CardContent className="py-12 text-center">
+            <p className="text-purple-400">
+              {searchQuery
+                ? "Nenhuma organização encontrada com esse termo"
+                : "Nenhuma organização cadastrada ainda"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Toggle Status Dialog */}
+      <AlertDialog open={toggleOrgId !== null} onOpenChange={() => setToggleOrgId(null)}>
+        <AlertDialogContent className="bg-slate-900 border-purple-800/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-purple-100">
+              Confirmar Ação
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-purple-400">
+              {organizations?.find((o) => o.id === toggleOrgId)?.is_active
+                ? "Desativar esta organização impedirá o acesso de todos os usuários vinculados."
+                : "Ativar esta organização permitirá o acesso de todos os usuários vinculados."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-800 text-purple-300 hover:bg-slate-700">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const org = organizations?.find((o) => o.id === toggleOrgId);
+                if (org) {
+                  toggleStatus.mutate({
+                    orgId: org.id,
+                    newStatus: !org.is_active,
+                  });
+                }
+              }}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+

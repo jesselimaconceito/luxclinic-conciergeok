@@ -2,14 +2,35 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+
+// Components
+import ProtectedRoute from "./components/ProtectedRoute";
+import SuperAdminRoute from "./components/SuperAdminRoute";
+import OrgRoute from "./components/OrgRoute";
 import Layout from "./components/Layout";
+import SuperAdminLayout from "./components/SuperAdminLayout";
+
+// Auth Pages
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+
+// Organization Pages
 import Dashboard from "./pages/Dashboard";
 import Agenda from "./pages/Agenda";
 import CRM from "./pages/CRM";
 import Subscription from "./pages/Subscription";
 import Integrations from "./pages/Integrations";
+
+// Super Admin Pages
+import SuperAdminDashboard from "./pages/super-admin/Dashboard";
+import Organizations from "./pages/super-admin/Organizations";
+import OrganizationForm from "./pages/super-admin/OrganizationForm";
+import SuperAdminSettings from "./pages/super-admin/Settings";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -17,23 +38,42 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/agenda" element={<Agenda />} />
-              <Route path="/crm" element={<CRM />} />
-              <Route path="/subscription" element={<Subscription />} />
-              <Route path="/integrations" element={<Integrations />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Rotas públicas de autenticação */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              {/* Rotas do Super Admin */}
+              <Route element={<SuperAdminRoute><SuperAdminLayout /></SuperAdminRoute>}>
+                <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+                <Route path="/super-admin/organizations" element={<Organizations />} />
+                <Route path="/super-admin/organizations/new" element={<OrganizationForm />} />
+                <Route path="/super-admin/organizations/:id/edit" element={<OrganizationForm />} />
+                <Route path="/super-admin/settings" element={<SuperAdminSettings />} />
+              </Route>
+
+              {/* Rotas de Organização (antiga "/" agora "/app/*") */}
+              <Route element={<OrgRoute><Layout /></OrgRoute>}>
+                <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="/app/dashboard" element={<Dashboard />} />
+                <Route path="/app/agenda" element={<Agenda />} />
+                <Route path="/app/crm" element={<CRM />} />
+                <Route path="/app/subscription" element={<Subscription />} />
+                <Route path="/app/integrations" element={<Integrations />} />
+              </Route>
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

@@ -1,11 +1,82 @@
 import { Search, UserPlus, Mail, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { usePatients } from "@/hooks/usePatients";
+import { usePatients, useCreatePatient } from "@/hooks/usePatients";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface PatientFormData {
+  name: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive';
+}
 
 export default function CRM() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: patients = [], isLoading } = usePatients();
+  const { profile } = useAuth();
+  const createPatient = useCreatePatient();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+  } = useForm<PatientFormData>({
+    defaultValues: {
+      status: 'active',
+    },
+  });
+
+  const status = watch('status');
+
+  const onSubmit = async (data: PatientFormData) => {
+    if (!profile?.organization_id) {
+      toast.error('Erro: organização não identificada');
+      return;
+    }
+
+    try {
+      await createPatient.mutateAsync({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        status: data.status,
+        organization_id: profile.organization_id,
+        total_visits: 0,
+      });
+
+      toast.success('Paciente cadastrado com sucesso!');
+      setIsDialogOpen(false);
+      reset();
+    } catch (error: any) {
+      console.error('Erro ao criar paciente:', error);
+      toast.error(error.message || 'Erro ao cadastrar paciente');
+    }
+  };
 
   // Filtrar pacientes pela busca
   const filteredPatients = patients.filter((patient) => {
@@ -40,10 +111,103 @@ export default function CRM() {
             Gerencie seus pacientes com cuidado
           </p>
         </div>
-        <button className="flex items-center justify-center gap-2 rounded-lg bg-accent px-4 md:px-6 py-2.5 md:py-3 text-sm font-semibold text-accent-foreground transition-all hover:shadow-[0_0_40px_hsl(var(--accent)/0.4)] hover-scale w-full sm:w-auto">
-          <UserPlus className="h-4 w-4" />
-          Adicionar Paciente
-        </button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <button className="flex items-center justify-center gap-2 rounded-lg bg-accent px-4 md:px-6 py-2.5 md:py-3 text-sm font-semibold text-accent-foreground transition-all hover:shadow-[0_0_40px_hsl(var(--accent)/0.4)] hover-scale w-full sm:w-auto">
+              <UserPlus className="h-4 w-4" />
+              Adicionar Paciente
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Novo Paciente</DialogTitle>
+              <DialogDescription>
+                Adicione um novo paciente ao seu sistema de gestão.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome Completo *</Label>
+                <Input
+                  id="name"
+                  placeholder="Ex: João da Silva"
+                  {...register('name', { required: 'Nome é obrigatório' })}
+                  className={errors.name ? 'border-red-500' : ''}
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-500">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="joao@example.com"
+                  {...register('email', {
+                    required: 'Email é obrigatório',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Email inválido',
+                    },
+                  })}
+                  className={errors.email ? 'border-red-500' : ''}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone *</Label>
+                <Input
+                  id="phone"
+                  placeholder="(11) 98888-8888"
+                  {...register('phone', { required: 'Telefone é obrigatório' })}
+                  className={errors.phone ? 'border-red-500' : ''}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-red-500">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value: 'active' | 'inactive') =>
+                    setValue('status', value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    reset();
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createPatient.isPending}>
+                  {createPatient.isPending ? 'Criando...' : 'Criar Paciente'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search Bar */}

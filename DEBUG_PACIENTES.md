@@ -38,7 +38,7 @@ Você tem 9 pacientes no Supabase, mas o Dashboard está mostrando apenas 4.
 
 ### 3. 🗄️ Verificar no Supabase
 
-1. Acesse: https://supabase.com/dashboard/project/xpmdzllctbtwmrzjzkni
+1. Acesse: https://supabase.com/dashboard/project/usidtjpjymomofyqolwe
 2. Vá em **Table Editor**
 3. Selecione tabela **patients**
 4. **Conte quantas linhas existem**

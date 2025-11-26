@@ -12,47 +12,66 @@ import {
   Moon,
   Sun,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Agenda", href: "/agenda", icon: Calendar },
-  { name: "CRM", href: "/crm", icon: Users },
-  { name: "Subscription", href: "/subscription", icon: CreditCard },
-  { name: "Integrations", href: "/integrations", icon: Plug },
-  { name: "Token Usage", href: "/tokens", icon: TrendingUp },
-  { name: "KPIs", href: "/kpis", icon: BarChart3 },
+  { name: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+  { name: "Agenda", href: "/app/agenda", icon: Calendar },
+  { name: "CRM", href: "/app/crm", icon: Users },
+  { name: "Subscription", href: "/app/subscription", icon: CreditCard },
+  { name: "Integrations", href: "/app/integrations", icon: Plug },
+  { name: "Token Usage", href: "/app/tokens", icon: TrendingUp },
+  { name: "KPIs", href: "/app/kpis", icon: BarChart3 },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { profile, organization, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      // Erro já tratado no AuthContext
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 md:h-20 items-center justify-between border-b border-border/50 px-4 md:px-6">
-        <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">
-          Lux<span className="text-accent">Clinic</span>
-        </h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          className="h-9 w-9 shrink-0"
-        >
-          {theme === "light" ? (
-            <Moon className="h-4 w-4" />
-          ) : (
-            <Sun className="h-4 w-4" />
-          )}
-          <span className="sr-only">Alternar tema</span>
-        </Button>
+      {/* Logo & Organization */}
+      <div className="border-b border-border/50 px-4 md:px-6 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground">
+            Lux<span className="text-accent">Clinic</span>
+          </h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 shrink-0"
+          >
+            {theme === "light" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            <span className="sr-only">Alternar tema</span>
+          </Button>
+        </div>
+        {organization && (
+          <div className="px-2">
+            <p className="text-xs font-medium text-muted-foreground">Organização</p>
+            <p className="text-sm font-semibold text-foreground truncate">{organization.name}</p>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -84,16 +103,31 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* User Profile */}
-      <div className="border-t border-border/50 p-3 md:p-4">
+      <div className="border-t border-border/50 p-3 md:p-4 space-y-2">
         <div className="flex items-center gap-3 rounded-lg bg-secondary/50 px-3 md:px-4 py-2.5 md:py-3">
           <div className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full bg-accent/20">
-            <span className="font-display text-xs md:text-sm font-semibold text-accent">DS</span>
+            <span className="font-display text-xs md:text-sm font-semibold text-accent">
+              {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+            </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">Dr. Silva</p>
-            <p className="text-xs text-muted-foreground truncate">Premium Plan</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {profile?.full_name || 'Usuário'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate capitalize">
+              {profile?.role || 'doctor'}
+            </p>
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSignOut}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
       </div>
     </div>
   );
