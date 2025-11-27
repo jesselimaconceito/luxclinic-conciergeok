@@ -22,7 +22,8 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Agenda from "./pages/Agenda";
 import CRM from "./pages/CRM";
-import Subscription from "./pages/Subscription";
+import Kanban from "./pages/Kanban";
+import AgentIA from "./pages/AgentIA";
 import Integrations from "./pages/Integrations";
 
 // Super Admin Pages
@@ -63,8 +64,12 @@ const App = () => (
                 <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
                 <Route path="/app/dashboard" element={<Dashboard />} />
                 <Route path="/app/agenda" element={<Agenda />} />
-                <Route path="/app/crm" element={<CRM />} />
-                <Route path="/app/subscription" element={<Subscription />} />
+                <Route path="/app/clientes/crm" element={<CRM />} />
+                <Route path="/app/clientes/kanban" element={<Kanban />} />
+                <Route path="/app/agent-ia" element={<AgentIA />} />
+                {/* Redirect antigos */}
+                <Route path="/app/crm" element={<Navigate to="/app/clientes/crm" replace />} />
+                <Route path="/app/crm/kanban" element={<Navigate to="/app/clientes/kanban" replace />} />
                 <Route path="/app/integrations" element={<Integrations />} />
               </Route>
 

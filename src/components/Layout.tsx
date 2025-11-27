@@ -5,36 +5,45 @@ import {
   LayoutDashboard, 
   Calendar, 
   Users, 
-  CreditCard, 
   Plug, 
-  TrendingUp,
-  BarChart3,
   Moon,
   Sun,
   Menu,
   X,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Kanban as KanbanIcon,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const navigation = [
   { name: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
   { name: "Agenda", href: "/app/agenda", icon: Calendar },
-  { name: "CRM", href: "/app/crm", icon: Users },
-  { name: "Subscription", href: "/app/subscription", icon: CreditCard },
+  { 
+    name: "Clientes", 
+    href: "/app/clientes", 
+    icon: Users,
+    subItems: [
+      { name: "CRM", href: "/app/clientes/crm", icon: Users },
+      { name: "Kanban", href: "/app/clientes/kanban", icon: KanbanIcon }
+    ]
+  },
+  { name: "Agent IA", href: "/app/agent-ia", icon: Bot },
   { name: "Integração", href: "/app/integrations", icon: Plug },
-  { name: "Token Usage", href: "/app/tokens", icon: TrendingUp },
-  { name: "KPIs", href: "/app/kpis", icon: BarChart3 },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { profile, organization, signOut } = useAuth();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const handleSignOut = async () => {
     try {
@@ -87,6 +96,72 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 space-y-1 px-3 md:px-4 py-6 md:py-8 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
+          const hasSubItems = 'subItems' in item && item.subItems && item.subItems.length > 0;
+          const isSubItemActive = hasSubItems && item.subItems?.some(sub => location.pathname === sub.href);
+          const isOpen = openMenus[item.name] ?? (isActive || isSubItemActive);
+
+          if (hasSubItems) {
+            return (
+              <Collapsible 
+                key={item.name} 
+                open={isOpen} 
+                onOpenChange={(open) => setOpenMenus(prev => ({ ...prev, [item.name]: open }))}
+              >
+                <CollapsibleTrigger asChild>
+                  <div
+                    className={cn(
+                      "group flex items-center justify-between gap-3 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm font-medium transition-all duration-200 cursor-pointer",
+                      isActive || isSubItemActive
+                        ? "bg-accent/10 text-accent"
+                        : "text-foreground/70 hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon
+                        className={cn(
+                          "h-5 w-5 shrink-0 transition-all duration-200",
+                          isActive || isSubItemActive ? "text-accent" : "text-foreground/50 group-hover:text-foreground"
+                        )}
+                      />
+                      <span className="truncate">{item.name}</span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 pl-6 mt-1">
+                  {item.subItems?.map((subItem) => {
+                    const isSubActive = location.pathname === subItem.href;
+                    return (
+                      <NavLink
+                        key={subItem.name}
+                        to={subItem.href}
+                        onClick={onNavigate}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-sm font-medium transition-all duration-200",
+                          isSubActive
+                            ? "bg-accent/10 text-accent"
+                            : "text-foreground/70 hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        <subItem.icon
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-all duration-200",
+                            isSubActive ? "text-accent" : "text-foreground/50 group-hover:text-foreground"
+                          )}
+                        />
+                        <span className="truncate">{subItem.name}</span>
+                      </NavLink>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          }
+
           return (
             <NavLink
               key={item.name}
@@ -189,8 +264,8 @@ export default function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="w-full lg:ml-64 pt-16 lg:pt-0">
-        <div className="min-h-screen">
+      <main className="w-full lg:ml-64 h-screen pt-16 lg:pt-0 overflow-hidden">
+        <div className="h-full overflow-y-auto">
           <Outlet />
         </div>
       </main>

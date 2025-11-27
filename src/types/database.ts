@@ -81,6 +81,7 @@ export interface Database {
           status: 'active' | 'inactive'
           last_visit: string | null
           total_visits: number
+          kanban_status: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
         }
         Insert: {
           id?: string
@@ -92,6 +93,7 @@ export interface Database {
           status?: 'active' | 'inactive'
           last_visit?: string | null
           total_visits?: number
+          kanban_status?: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
         }
         Update: {
           id?: string
@@ -103,6 +105,7 @@ export interface Database {
           status?: 'active' | 'inactive'
           last_visit?: string | null
           total_visits?: number
+          kanban_status?: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
         }
       }
       appointments: {
@@ -179,6 +182,41 @@ export interface Database {
           doctor_name?: string
           subscription_plan?: string
           subscription_renews_at?: string | null
+        }
+      }
+      agent_ia_config: {
+        Row: {
+          id: string
+          organization_id: string
+          created_at: string
+          updated_at: string
+          agent_name: string
+          personality: string
+          pause_duration: number
+          greeting_message: string
+          closing_message: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          created_at?: string
+          updated_at?: string
+          agent_name?: string
+          personality?: string
+          pause_duration?: number
+          greeting_message?: string
+          closing_message?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          created_at?: string
+          updated_at?: string
+          agent_name?: string
+          personality?: string
+          pause_duration?: number
+          greeting_message?: string
+          closing_message?: string
         }
       }
     }

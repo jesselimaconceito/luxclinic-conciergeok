@@ -113,10 +113,10 @@ export default function CRM() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <button className="flex items-center justify-center gap-2 rounded-lg bg-accent px-4 md:px-6 py-2.5 md:py-3 text-sm font-semibold text-accent-foreground transition-all hover:shadow-[0_0_40px_hsl(var(--accent)/0.4)] hover-scale w-full sm:w-auto">
+            <Button className="gap-2 w-full sm:w-auto">
               <UserPlus className="h-4 w-4" />
               Adicionar Paciente
-            </button>
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
