@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { N8N_ENDPOINTS, SUPABASE_FUNCTIONS } from "@/lib/constants";
 
 interface OrganizationFormData {
   name: string;
@@ -171,7 +172,7 @@ export default function OrganizationForm() {
 
       console.log("Configurando webhook, payload:", payload);
 
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/configurar-webhook", {
+      const response = await fetch(N8N_ENDPOINTS.CONFIGURAR_WEBHOOK, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -277,7 +278,7 @@ export default function OrganizationForm() {
       console.log("Enviando dados para criação de workflow:", payload);
 
       // Chamar webhook
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/criacao-fluxo", {
+      const response = await fetch(N8N_ENDPOINTS.CRIACAO_FLUXO, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +484,7 @@ export default function OrganizationForm() {
       } else {
         // Chamar Edge Function para criar
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-organization`,
+          SUPABASE_FUNCTIONS.CREATE_ORGANIZATION,
           {
             method: "POST",
             headers: {
@@ -545,7 +546,7 @@ export default function OrganizationForm() {
 
       // Chamar Edge Function
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-organization-users`,
+        SUPABASE_FUNCTIONS.MANAGE_USERS,
         {
           method: "POST",
           headers: {
@@ -599,7 +600,7 @@ export default function OrganizationForm() {
 
       // Chamar Edge Function
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-organization-users`,
+        SUPABASE_FUNCTIONS.MANAGE_USERS,
         {
           method: "POST",
           headers: {

@@ -29,6 +29,7 @@ import { toSaoPauloISO } from "@/lib/dateUtils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { N8N_ENDPOINTS } from "@/lib/constants";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -339,7 +340,7 @@ export default function Agenda() {
       console.log(`📤 Enviando ${eventsToSync.length} eventos para conferência...`);
 
       // Enviar para webhook de conferência
-      const response = await fetch('https://webhook.n8nlabz.com.br/webhook/labz-conferir-agenda', {
+      const response = await fetch(N8N_ENDPOINTS.CONFERIR_AGENDA, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -672,7 +673,7 @@ export default function Agenda() {
           created_at: new Date().toISOString()
         };
 
-        await fetch('https://webhook.n8nlabz.com.br/webhook/labz-criar-agenda', {
+        await fetch(N8N_ENDPOINTS.CRIAR_AGENDA, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -25,6 +25,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { N8N_ENDPOINTS } from "@/lib/constants";
 
 interface WhatsAppInstance {
   id: string;
@@ -111,7 +112,7 @@ export default function Integrations() {
           organizationName: organization?.name,
         };
 
-        const response = await fetch("https://webhook.n8nlabz.com.br/webhook/verificar-conexao", {
+        const response = await fetch(N8N_ENDPOINTS.VERIFICAR_CONEXAO, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -298,7 +299,7 @@ export default function Integrations() {
     try {
       setIsConnecting(true);
 
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/criar-instancia-cliente", {
+      const response = await fetch(N8N_ENDPOINTS.CRIAR_INSTANCIA, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -380,7 +381,7 @@ export default function Integrations() {
       
       console.log("Apagando instância, payload:", payload);
       
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/apagar-instancia", {
+      const response = await fetch(N8N_ENDPOINTS.APAGAR_INSTANCIA, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -446,7 +447,7 @@ export default function Integrations() {
       
       console.log("Listando instância, payload:", payload);
       
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/listar-instancia", {
+      const response = await fetch(N8N_ENDPOINTS.LISTAR_INSTANCIA, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -506,7 +507,7 @@ export default function Integrations() {
       
       console.log("Payload enviado:", payload);
       
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/gerar-qrcode", {
+      const response = await fetch(N8N_ENDPOINTS.GERAR_QRCODE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

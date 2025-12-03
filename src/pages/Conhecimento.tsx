@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { N8N_ENDPOINTS } from "@/lib/constants";
 
 export default function Conhecimento() {
   const { profile, organization } = useAuth();
@@ -269,7 +270,7 @@ export default function Conhecimento() {
 
       console.log("Payload enviado:", payload);
 
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-deletar-unico", {
+      const response = await fetch(N8N_ENDPOINTS.RAG_DELETAR_UNICO, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -320,7 +321,7 @@ export default function Conhecimento() {
 
       console.log("Payload enviado:", payload);
 
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-deletar-tudo", {
+      const response = await fetch(N8N_ENDPOINTS.RAG_DELETAR_TUDO, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -453,7 +454,7 @@ export default function Conhecimento() {
         organizationName: organization.name,
       });
 
-      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-cliente", {
+      const response = await fetch(N8N_ENDPOINTS.RAG_CLIENTE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
