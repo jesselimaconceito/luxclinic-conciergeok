@@ -181,8 +181,15 @@ export default function OrganizationForm() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao configurar webhook");
+        let errorMessage = `Erro ao configurar webhook (${response.status})`;
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || errorMessage;
+        } catch (e) {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -287,8 +294,16 @@ export default function OrganizationForm() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao criar workflow");
+        let errorMessage = `Erro ao criar workflow (${response.status})`;
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || errorMessage;
+        } catch (e) {
+          // Resposta não é JSON válido
+          const text = await response.text();
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -566,11 +581,19 @@ export default function OrganizationForm() {
         }
       );
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || "Erro ao criar usuário");
+        let errorMessage = `Erro ao criar usuário (${response.status})`;
+        try {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        } catch (e) {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
+
+      const result = await response.json();
 
       toast.success("Usuário criado com sucesso!", { id: "create-user" });
       setIsAddUserModalOpen(false);
@@ -614,11 +637,19 @@ export default function OrganizationForm() {
         }
       );
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || "Erro ao deletar usuário");
+        let errorMessage = `Erro ao deletar usuário (${response.status})`;
+        try {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        } catch (e) {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
+
+      const result = await response.json();
 
       toast.success("Usuário deletado com sucesso!", { id: "delete-user" });
       setUserToDelete(null);

@@ -28,6 +28,23 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { N8N_ENDPOINTS } from "@/lib/constants";
 
+// Função auxiliar para tratar erros de resposta
+async function handleResponseError(response: Response, defaultMessage: string): Promise<never> {
+  let errorMessage = `${defaultMessage} (${response.status})`;
+  try {
+    const error = await response.json();
+    errorMessage = error.message || error.error || errorMessage;
+  } catch (e) {
+    try {
+      const text = await response.text();
+      if (text) errorMessage = text;
+    } catch (err) {
+      // Ignorar erro ao ler texto
+    }
+  }
+  throw new Error(errorMessage);
+}
+
 export default function Conhecimento() {
   const { profile, organization } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
@@ -279,8 +296,7 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao deletar documento");
+        await handleResponseError(response, "Erro ao deletar documento");
       }
 
       const result = await response.json();
@@ -330,8 +346,7 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao deletar documentos");
+        await handleResponseError(response, "Erro ao deletar documentos");
       }
 
       const result = await response.json();
@@ -463,8 +478,7 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao enviar arquivo");
+        await handleResponseError(response, "Erro ao enviar arquivo");
       }
 
       const result = await response.json();

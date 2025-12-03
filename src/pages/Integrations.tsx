@@ -27,6 +27,23 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { N8N_ENDPOINTS } from "@/lib/constants";
 
+// Função auxiliar para tratar erros de resposta
+async function handleResponseError(response: Response, defaultMessage: string): Promise<never> {
+  let errorMessage = `${defaultMessage} (${response.status})`;
+  try {
+    const error = await response.json();
+    errorMessage = error.message || error.error || errorMessage;
+  } catch (e) {
+    try {
+      const text = await response.text();
+      if (text) errorMessage = text;
+    } catch (err) {
+      // Ignorar erro ao ler texto
+    }
+  }
+  throw new Error(errorMessage);
+}
+
 interface WhatsAppInstance {
   id: string;
   token: string;
@@ -313,8 +330,7 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao conectar WhatsApp");
+        await handleResponseError(response, "Erro ao conectar WhatsApp");
       }
 
       const result = await response.json();
@@ -390,8 +406,7 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao apagar instância");
+        await handleResponseError(response, "Erro ao apagar instância");
       }
 
       const result = await response.json();
@@ -456,8 +471,7 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao listar instância");
+        await handleResponseError(response, "Erro ao listar instância");
       }
 
       const result = await response.json();
@@ -516,8 +530,7 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao gerar QR Code");
+        await handleResponseError(response, "Erro ao gerar QR Code");
       }
 
       const result = await response.json();
