@@ -26,24 +26,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { N8N_ENDPOINTS } from "@/lib/constants";
-
-// Função auxiliar para tratar erros de resposta
-async function handleResponseError(response: Response, defaultMessage: string): Promise<never> {
-  let errorMessage = `${defaultMessage} (${response.status})`;
-  try {
-    const error = await response.json();
-    errorMessage = error.message || error.error || errorMessage;
-  } catch (e) {
-    try {
-      const text = await response.text();
-      if (text) errorMessage = text;
-    } catch (err) {
-      // Ignorar erro ao ler texto
-    }
-  }
-  throw new Error(errorMessage);
-}
 
 export default function Conhecimento() {
   const { profile, organization } = useAuth();
@@ -287,7 +269,7 @@ export default function Conhecimento() {
 
       console.log("Payload enviado:", payload);
 
-      const response = await fetch(N8N_ENDPOINTS.RAG_DELETAR_UNICO, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-deletar-unico", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -296,7 +278,8 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao deletar documento");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao deletar documento");
       }
 
       const result = await response.json();
@@ -337,7 +320,7 @@ export default function Conhecimento() {
 
       console.log("Payload enviado:", payload);
 
-      const response = await fetch(N8N_ENDPOINTS.RAG_DELETAR_TUDO, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-deletar-tudo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -346,7 +329,8 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao deletar documentos");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao deletar documentos");
       }
 
       const result = await response.json();
@@ -469,7 +453,7 @@ export default function Conhecimento() {
         organizationName: organization.name,
       });
 
-      const response = await fetch(N8N_ENDPOINTS.RAG_CLIENTE, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/rag-cliente", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -478,7 +462,8 @@ export default function Conhecimento() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao enviar arquivo");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao enviar arquivo");
       }
 
       const result = await response.json();

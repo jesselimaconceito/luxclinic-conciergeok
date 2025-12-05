@@ -25,24 +25,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { N8N_ENDPOINTS } from "@/lib/constants";
-
-// Função auxiliar para tratar erros de resposta
-async function handleResponseError(response: Response, defaultMessage: string): Promise<never> {
-  let errorMessage = `${defaultMessage} (${response.status})`;
-  try {
-    const error = await response.json();
-    errorMessage = error.message || error.error || errorMessage;
-  } catch (e) {
-    try {
-      const text = await response.text();
-      if (text) errorMessage = text;
-    } catch (err) {
-      // Ignorar erro ao ler texto
-    }
-  }
-  throw new Error(errorMessage);
-}
 
 interface WhatsAppInstance {
   id: string;
@@ -129,7 +111,7 @@ export default function Integrations() {
           organizationName: organization?.name,
         };
 
-        const response = await fetch(N8N_ENDPOINTS.VERIFICAR_CONEXAO, {
+        const response = await fetch("https://webhook.n8nlabz.com.br/webhook/verificar-conexao", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -316,7 +298,7 @@ export default function Integrations() {
     try {
       setIsConnecting(true);
 
-      const response = await fetch(N8N_ENDPOINTS.CRIAR_INSTANCIA, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/criar-instancia-cliente", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -330,7 +312,8 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao conectar WhatsApp");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao conectar WhatsApp");
       }
 
       const result = await response.json();
@@ -397,7 +380,7 @@ export default function Integrations() {
       
       console.log("Apagando instância, payload:", payload);
       
-      const response = await fetch(N8N_ENDPOINTS.APAGAR_INSTANCIA, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/apagar-instancia", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -406,7 +389,8 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao apagar instância");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao apagar instância");
       }
 
       const result = await response.json();
@@ -462,7 +446,7 @@ export default function Integrations() {
       
       console.log("Listando instância, payload:", payload);
       
-      const response = await fetch(N8N_ENDPOINTS.LISTAR_INSTANCIA, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/listar-instancia", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -471,7 +455,8 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao listar instância");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao listar instância");
       }
 
       const result = await response.json();
@@ -521,7 +506,7 @@ export default function Integrations() {
       
       console.log("Payload enviado:", payload);
       
-      const response = await fetch(N8N_ENDPOINTS.GERAR_QRCODE, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/gerar-qrcode", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -530,7 +515,8 @@ export default function Integrations() {
       });
 
       if (!response.ok) {
-        await handleResponseError(response, "Erro ao gerar QR Code");
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao gerar QR Code");
       }
 
       const result = await response.json();

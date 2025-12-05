@@ -30,6 +30,9 @@ interface AgentConfig {
   reminder_1_minutes: number;
   reminder_2_minutes: number;
   reminder_3_minutes: number;
+  follow_up_1_minutes: number;
+  follow_up_2_minutes: number;
+  follow_up_3_minutes: number;
   qualification_questions: string[];
 }
 
@@ -56,6 +59,14 @@ export default function AgentIA() {
   const [reminder2Unit, setReminder2Unit] = useState<'minutos' | 'horas' | 'dias'>('horas');
   const [reminder3Value, setReminder3Value] = useState(1);
   const [reminder3Unit, setReminder3Unit] = useState<'minutos' | 'horas' | 'dias'>('dias');
+  
+  // Estados para unidades de tempo dos follow ups
+  const [followUp1Value, setFollowUp1Value] = useState(1);
+  const [followUp1Unit, setFollowUp1Unit] = useState<'minutos' | 'horas' | 'dias'>('horas');
+  const [followUp2Value, setFollowUp2Value] = useState(1);
+  const [followUp2Unit, setFollowUp2Unit] = useState<'minutos' | 'horas' | 'dias'>('dias');
+  const [followUp3Value, setFollowUp3Value] = useState(3);
+  const [followUp3Unit, setFollowUp3Unit] = useState<'minutos' | 'horas' | 'dias'>('dias');
   const [config, setConfig] = useState<AgentConfig>({
     agent_name: "Assistente Virtual",
     personality: "profissional",
@@ -68,6 +79,9 @@ export default function AgentIA() {
     reminder_1_minutes: 15,
     reminder_2_minutes: 60,
     reminder_3_minutes: 1440,
+    follow_up_1_minutes: 60,
+    follow_up_2_minutes: 1440,
+    follow_up_3_minutes: 4320,
     qualification_questions: [],
   });
   const [editConfig, setEditConfig] = useState<AgentConfig>(config);
@@ -146,8 +160,22 @@ export default function AgentIA() {
       
       setReminder3Unit(unit3);
       setReminder3Value(minutesToUnit(editConfig.reminder_3_minutes, unit3));
+
+      // Atualizar follow ups
+      const followUnit1 = detectBestUnit(editConfig.follow_up_1_minutes);
+      const followUnit2 = detectBestUnit(editConfig.follow_up_2_minutes);
+      const followUnit3 = detectBestUnit(editConfig.follow_up_3_minutes);
+
+      setFollowUp1Unit(followUnit1);
+      setFollowUp1Value(minutesToUnit(editConfig.follow_up_1_minutes, followUnit1));
+      
+      setFollowUp2Unit(followUnit2);
+      setFollowUp2Value(minutesToUnit(editConfig.follow_up_2_minutes, followUnit2));
+      
+      setFollowUp3Unit(followUnit3);
+      setFollowUp3Value(minutesToUnit(editConfig.follow_up_3_minutes, followUnit3));
     }
-  }, [isEditing, editConfig.reminder_1_minutes, editConfig.reminder_2_minutes, editConfig.reminder_3_minutes]);
+  }, [isEditing, editConfig.reminder_1_minutes, editConfig.reminder_2_minutes, editConfig.reminder_3_minutes, editConfig.follow_up_1_minutes, editConfig.follow_up_2_minutes, editConfig.follow_up_3_minutes]);
 
   const generateEmailWithAI = async () => {
     if (!emailPrompt.trim()) {
@@ -273,6 +301,9 @@ export default function AgentIA() {
         reminder_1_minutes: editConfig.reminder_1_minutes,
         reminder_2_minutes: editConfig.reminder_2_minutes,
         reminder_3_minutes: editConfig.reminder_3_minutes,
+        follow_up_1_minutes: editConfig.follow_up_1_minutes,
+        follow_up_2_minutes: editConfig.follow_up_2_minutes,
+        follow_up_3_minutes: editConfig.follow_up_3_minutes,
         qualification_questions: editConfig.qualification_questions,
       } as any;
 
@@ -464,6 +495,28 @@ export default function AgentIA() {
                 <div className="space-y-2">
                   <span className="text-sm font-medium text-muted-foreground">3º Lembrete</span>
                   <p className="text-lg font-semibold text-foreground">{formatReminderDisplay(config.reminder_3_minutes)} antes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Follow Up */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-accent" />
+                Follow Up
+              </h3>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">1º Follow Up</span>
+                  <p className="text-lg font-semibold text-foreground">{formatReminderDisplay(config.follow_up_1_minutes)} após a última mensagem não respondida</p>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">2º Follow Up</span>
+                  <p className="text-lg font-semibold text-foreground">{formatReminderDisplay(config.follow_up_2_minutes)} após a última mensagem não respondida</p>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">3º Follow Up</span>
+                  <p className="text-lg font-semibold text-foreground">{formatReminderDisplay(config.follow_up_3_minutes)} após a última mensagem não respondida</p>
                 </div>
               </div>
             </div>
@@ -740,6 +793,123 @@ export default function AgentIA() {
                     onValueChange={(value: 'minutos' | 'horas' | 'dias') => {
                       setReminder3Unit(value);
                       setEditConfig({ ...editConfig, reminder_3_minutes: unitToMinutes(reminder3Value, value) });
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutos">Minutos</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Follow Up */}
+          <div className="mt-8 space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Clock className="h-5 w-5 text-accent" />
+              Follow Up
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Configure quando os follow ups serão enviados após a última mensagem não respondida
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* 1º Follow Up */}
+              <div className="space-y-2">
+                <Label htmlFor="followup_1">1º Follow Up</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="followup_1"
+                    type="number"
+                    min="1"
+                    value={followUp1Value}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setFollowUp1Value(val);
+                      setEditConfig({ ...editConfig, follow_up_1_minutes: unitToMinutes(val, followUp1Unit) });
+                    }}
+                    className="w-24"
+                  />
+                  <Select
+                    value={followUp1Unit}
+                    onValueChange={(value: 'minutos' | 'horas' | 'dias') => {
+                      setFollowUp1Unit(value);
+                      setEditConfig({ ...editConfig, follow_up_1_minutes: unitToMinutes(followUp1Value, value) });
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutos">Minutos</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 2º Follow Up */}
+              <div className="space-y-2">
+                <Label htmlFor="followup_2">2º Follow Up</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="followup_2"
+                    type="number"
+                    min="1"
+                    value={followUp2Value}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setFollowUp2Value(val);
+                      setEditConfig({ ...editConfig, follow_up_2_minutes: unitToMinutes(val, followUp2Unit) });
+                    }}
+                    className="w-24"
+                  />
+                  <Select
+                    value={followUp2Unit}
+                    onValueChange={(value: 'minutos' | 'horas' | 'dias') => {
+                      setFollowUp2Unit(value);
+                      setEditConfig({ ...editConfig, follow_up_2_minutes: unitToMinutes(followUp2Value, value) });
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutos">Minutos</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 3º Follow Up */}
+              <div className="space-y-2">
+                <Label htmlFor="followup_3">3º Follow Up</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="followup_3"
+                    type="number"
+                    min="1"
+                    value={followUp3Value}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setFollowUp3Value(val);
+                      setEditConfig({ ...editConfig, follow_up_3_minutes: unitToMinutes(val, followUp3Unit) });
+                    }}
+                    className="w-24"
+                  />
+                  <Select
+                    value={followUp3Unit}
+                    onValueChange={(value: 'minutos' | 'horas' | 'dias') => {
+                      setFollowUp3Unit(value);
+                      setEditConfig({ ...editConfig, follow_up_3_minutes: unitToMinutes(followUp3Value, value) });
                     }}
                   >
                     <SelectTrigger className="flex-1">

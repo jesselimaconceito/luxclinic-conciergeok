@@ -35,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { N8N_ENDPOINTS, SUPABASE_FUNCTIONS } from "@/lib/constants";
 
 interface OrganizationFormData {
   name: string;
@@ -172,7 +171,7 @@ export default function OrganizationForm() {
 
       console.log("Configurando webhook, payload:", payload);
 
-      const response = await fetch(N8N_ENDPOINTS.CONFIGURAR_WEBHOOK, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/configurar-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,15 +180,8 @@ export default function OrganizationForm() {
       });
 
       if (!response.ok) {
-        let errorMessage = `Erro ao configurar webhook (${response.status})`;
-        try {
-          const error = await response.json();
-          errorMessage = error.message || error.error || errorMessage;
-        } catch (e) {
-          const text = await response.text();
-          if (text) errorMessage = text;
-        }
-        throw new Error(errorMessage);
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao configurar webhook");
       }
 
       const result = await response.json();
@@ -285,7 +277,7 @@ export default function OrganizationForm() {
       console.log("Enviando dados para criação de workflow:", payload);
 
       // Chamar webhook
-      const response = await fetch(N8N_ENDPOINTS.CRIACAO_FLUXO, {
+      const response = await fetch("https://webhook.n8nlabz.com.br/webhook/criacao-fluxo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -294,16 +286,8 @@ export default function OrganizationForm() {
       });
 
       if (!response.ok) {
-        let errorMessage = `Erro ao criar workflow (${response.status})`;
-        try {
-          const error = await response.json();
-          errorMessage = error.message || error.error || errorMessage;
-        } catch (e) {
-          // Resposta não é JSON válido
-          const text = await response.text();
-          if (text) errorMessage = text;
-        }
-        throw new Error(errorMessage);
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao criar workflow");
       }
 
       const result = await response.json();
@@ -499,7 +483,7 @@ export default function OrganizationForm() {
       } else {
         // Chamar Edge Function para criar
         const response = await fetch(
-          SUPABASE_FUNCTIONS.CREATE_ORGANIZATION,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-organization`,
           {
             method: "POST",
             headers: {
@@ -561,7 +545,7 @@ export default function OrganizationForm() {
 
       // Chamar Edge Function
       const response = await fetch(
-        SUPABASE_FUNCTIONS.MANAGE_USERS,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-organization-users`,
         {
           method: "POST",
           headers: {
@@ -581,19 +565,11 @@ export default function OrganizationForm() {
         }
       );
 
-      if (!response.ok) {
-        let errorMessage = `Erro ao criar usuário (${response.status})`;
-        try {
-          const error = await response.json();
-          errorMessage = error.error || error.message || errorMessage;
-        } catch (e) {
-          const text = await response.text();
-          if (text) errorMessage = text;
-        }
-        throw new Error(errorMessage);
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao criar usuário");
+      }
 
       toast.success("Usuário criado com sucesso!", { id: "create-user" });
       setIsAddUserModalOpen(false);
@@ -623,7 +599,7 @@ export default function OrganizationForm() {
 
       // Chamar Edge Function
       const response = await fetch(
-        SUPABASE_FUNCTIONS.MANAGE_USERS,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-organization-users`,
         {
           method: "POST",
           headers: {
@@ -637,19 +613,11 @@ export default function OrganizationForm() {
         }
       );
 
-      if (!response.ok) {
-        let errorMessage = `Erro ao deletar usuário (${response.status})`;
-        try {
-          const error = await response.json();
-          errorMessage = error.error || error.message || errorMessage;
-        } catch (e) {
-          const text = await response.text();
-          if (text) errorMessage = text;
-        }
-        throw new Error(errorMessage);
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao deletar usuário");
+      }
 
       toast.success("Usuário deletado com sucesso!", { id: "delete-user" });
       setUserToDelete(null);
