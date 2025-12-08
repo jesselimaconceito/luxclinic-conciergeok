@@ -247,6 +247,8 @@ export default function AgentIA() {
 
     try {
       setIsLoading(true);
+      
+      // Buscar configurações da organização
       const { data, error } = await supabase
         .from("agent_ia_config")
         .select("*")
@@ -257,9 +259,20 @@ export default function AgentIA() {
         throw error;
       }
 
+      // Buscar API Key global
+      const { data: globalSettings } = await supabase
+        .from("global_settings")
+        .select("openai_api_key")
+        .single();
+
       if (data) {
-        setConfig(data);
-        setEditConfig(data);
+        // Combinar dados da organização com API Key global
+        const configWithGlobalKey = {
+          ...data,
+          openai_api_key: globalSettings?.openai_api_key || null,
+        };
+        setConfig(configWithGlobalKey);
+        setEditConfig(configWithGlobalKey);
       }
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);

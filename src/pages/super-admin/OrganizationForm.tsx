@@ -54,7 +54,6 @@ export default function OrganizationForm() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [openaiApiKey, setOpenaiApiKey] = useState<string>("");
   const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
   const [isConfiguringWebhook, setIsConfiguringWebhook] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -360,31 +359,6 @@ export default function OrganizationForm() {
     enabled: isEditing,
   });
 
-  // Buscar configuração do Agent IA (se editando)
-  useEffect(() => {
-    const loadAgentConfig = async () => {
-      if (!id) return;
-
-      const { data, error } = await supabase
-        .from("agent_ia_config")
-        .select("openai_api_key")
-        .eq("organization_id", id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Erro ao buscar config do agent:", error);
-        return;
-      }
-
-      if (data) {
-        setOpenaiApiKey(data.openai_api_key || "");
-      }
-    };
-
-    if (isEditing) {
-      loadAgentConfig();
-    }
-  }, [id, isEditing]);
 
   // Preencher form ao editar
   useEffect(() => {
@@ -453,48 +427,6 @@ export default function OrganizationForm() {
           .eq('id', id);
 
         if (error) throw error;
-
-        // Atualizar/Criar API Key OpenAI no agent_ia_config
-        if (openaiApiKey) {
-          // Verificar se já existe config
-          const { data: existingConfig } = await supabase
-            .from('agent_ia_config')
-            .select('id')
-            .eq('organization_id', id)
-            .single();
-
-          if (existingConfig) {
-            // Atualizar
-            const { error: apiKeyError } = await supabase
-              .from('agent_ia_config')
-              .update({ openai_api_key: openaiApiKey })
-              .eq('organization_id', id);
-
-            if (apiKeyError) {
-              console.error('Erro ao atualizar API Key:', apiKeyError);
-              toast.error('Erro ao atualizar API Key OpenAI');
-            }
-          } else {
-            // Criar nova config com API Key
-            const { error: apiKeyError } = await supabase
-              .from('agent_ia_config')
-              .insert({
-                organization_id: id,
-                agent_name: 'Assistente Virtual',
-                personality: 'profissional',
-                pause_duration_seconds: 1800, // 30 minutos em segundos
-                customer_pause_duration_seconds: 300, // 5 minutos em segundos
-                greeting_message: 'Olá! Sou o assistente virtual. Como posso ajudá-lo?',
-                closing_message: 'Foi um prazer atendê-lo!',
-                openai_api_key: openaiApiKey,
-              });
-
-            if (apiKeyError) {
-              console.error('Erro ao criar config com API Key:', apiKeyError);
-              toast.error('Erro ao salvar API Key OpenAI');
-            }
-          }
-        }
       } else {
         // Chamar Edge Function para criar
         console.log("📞 Chamando Edge Function create-organization...");
@@ -945,47 +877,6 @@ export default function OrganizationForm() {
                 <p className="text-xs text-purple-400 mt-2">
                   PNG, JPG ou SVG. Máximo 2MB. Recomendado: 200x200px
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* OpenAI API Key (only when editing) */}
-        {isEditing && (
-          <Card className="border-purple-800/30 bg-slate-900/40 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-purple-100 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-400" />
-                Configuração de IA
-              </CardTitle>
-              <CardDescription className="text-purple-400">
-                Configure a API Key OpenAI para funcionalidades de IA desta organização
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="openai_api_key" className="text-purple-200">
-                  API Key OpenAI
-                </Label>
-                <Input
-                  id="openai_api_key"
-                  type="password"
-                  placeholder="sk-..."
-                  value={openaiApiKey}
-                  onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  className="mt-1.5 bg-slate-800/40 border-purple-800/30 text-purple-100 placeholder:text-purple-400/50 font-mono"
-                />
-                <p className="text-xs text-purple-400 mt-2">
-                  Esta chave será usada para funcionalidades como email de confirmação com IA, respostas automáticas, etc.
-                </p>
-                {openaiApiKey && (
-                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <p className="text-xs text-green-400 flex items-center gap-2">
-                      <Sparkles className="h-3 w-3" />
-                      API Key configurada (primeiros 8 caracteres: {openaiApiKey.substring(0, 8)}...)
-                    </p>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

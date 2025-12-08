@@ -38,6 +38,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import SupportButton from "@/components/SupportButton";
 
 const navigation = [
   { name: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
@@ -546,6 +547,9 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Support Button */}
+      <SupportButton />
     </div>
   );
 }

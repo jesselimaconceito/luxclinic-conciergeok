@@ -47,6 +47,29 @@ export interface Database {
           plan_features?: Json
         }
       }
+      global_settings: {
+        Row: {
+          id: string
+          support_whatsapp: string | null
+          openai_api_key: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          support_whatsapp?: string | null
+          openai_api_key?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          support_whatsapp?: string | null
+          openai_api_key?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       profiles: {
         Row: {
           id: string
