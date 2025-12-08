@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Plus, Pencil, Power, PowerOff, Search } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,7 @@ interface Organization {
 export default function Organizations() {
   const [searchQuery, setSearchQuery] = useState("");
   const [toggleOrgId, setToggleOrgId] = useState<string | null>(null);
+  const [deleteOrgId, setDeleteOrgId] = useState<string | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -66,6 +67,27 @@ export default function Organizations() {
     onError: (error) => {
       console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao atualizar status da organização");
+    },
+  });
+
+  // Deletar organização
+  const deleteOrganization = useMutation({
+    mutationFn: async (orgId: string) => {
+      const { error } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", orgId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-organizations"] });
+      toast.success("Organização e todos os dados relacionados excluídos com sucesso!");
+      setDeleteOrgId(null);
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir organização:", error);
+      toast.error("Erro ao excluir organização");
     },
   });
 
@@ -174,6 +196,14 @@ export default function Organizations() {
                     <Power className="h-4 w-4" />
                   )}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeleteOrgId(org.id)}
+                  className="border-red-600/30 text-red-300 hover:bg-red-900/30 hover:text-red-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -222,6 +252,55 @@ export default function Organizations() {
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Organization Dialog */}
+      <AlertDialog open={deleteOrgId !== null} onOpenChange={() => setDeleteOrgId(null)}>
+        <AlertDialogContent className="bg-slate-900 border-red-800/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-100 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Excluir Organização
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-purple-400 space-y-2">
+              <p className="font-semibold text-red-400">
+                ⚠️ ATENÇÃO: Esta ação é irreversível!
+              </p>
+              <p>
+                Ao excluir a organização "<strong className="text-purple-100">{organizations?.find((o) => o.id === deleteOrgId)?.name}</strong>", 
+                os seguintes dados serão permanentemente apagados:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Todos os usuários/perfis da organização</li>
+                <li>Todos os pacientes/clientes</li>
+                <li>Todos os compromissos/agendamentos</li>
+                <li>Configurações do Agent IA</li>
+                <li>Instâncias WhatsApp</li>
+                <li>Horários de trabalho</li>
+                <li>Todas as demais configurações</li>
+              </ul>
+              <p className="font-semibold text-red-400 mt-4">
+                Tem certeza que deseja continuar?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-800 text-purple-300 hover:bg-slate-700">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteOrgId) {
+                  deleteOrganization.mutate(deleteOrgId);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Sim, Excluir Tudo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
