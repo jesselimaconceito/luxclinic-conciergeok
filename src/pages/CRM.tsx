@@ -1,4 +1,4 @@
-import { Search, UserPlus, Mail, Phone, Filter, X, FileText } from "lucide-react";
+import { Search, UserPlus, Mail, Phone, Filter, X, FileText, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -58,6 +58,7 @@ export default function CRM() {
   const [statusFilter, setStatusFilter] = useState<KanbanStatus>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [resumoPatient, setResumoPatient] = useState<any | null>(null);
   const { data: patients = [], isLoading } = usePatients();
   const { profile } = useAuth();
   const createPatient = useCreatePatient();
@@ -423,16 +424,31 @@ export default function CRM() {
               </div>
 
               {/* Footer */}
-              <div className="mt-3 md:mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 border-t border-border/50 pt-3 md:pt-4">
-                <span className="text-xs text-muted-foreground">
-                  Última visita: {patient.last_visit ? new Date(patient.last_visit).toLocaleDateString('pt-BR') : 'Nunca'}
-                </span>
-                <button 
-                  onClick={() => setSelectedPatient(patient)}
-                  className="text-xs md:text-sm font-medium text-accent transition-colors hover:text-accent/80 self-start"
-                >
-                  Ver Detalhes
-                </button>
+              <div className="mt-3 md:mt-4 border-t border-border/50 pt-3 md:pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                  <span className="text-xs text-muted-foreground">
+                    Última visita: {patient.last_visit ? new Date(patient.last_visit).toLocaleDateString('pt-BR') : 'Nunca'}
+                  </span>
+                  <button 
+                    onClick={() => setSelectedPatient(patient)}
+                    className="text-xs md:text-sm font-medium text-accent transition-colors hover:text-accent/80 self-start"
+                  >
+                    Ver Detalhes
+                  </button>
+                </div>
+                
+                {/* Botão Ver Resumo */}
+                {patient.resumo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setResumoPatient(patient)}
+                    className="w-full gap-2 text-xs"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Ver resumo da conversa
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -547,6 +563,76 @@ export default function CRM() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedPatient(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Resumo da Conversa */}
+      <Dialog open={resumoPatient !== null} onOpenChange={() => setResumoPatient(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-accent" />
+              Resumo da Conversa
+            </DialogTitle>
+            <DialogDescription>
+              {resumoPatient?.name && `Resumo da conversa com ${resumoPatient.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {resumoPatient && (
+            <div className="space-y-4">
+              {/* Informações do Paciente */}
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-accent/5 border border-accent/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 font-display text-base font-semibold text-accent">
+                  {resumoPatient.name
+                    ? resumoPatient.name.split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase()
+                    : "?"
+                  }
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">{resumoPatient.name || "Paciente"}</h3>
+                  <p className="text-sm text-muted-foreground">{formatPhoneNumber(resumoPatient.phone)}</p>
+                </div>
+              </div>
+
+              {/* Resumo */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                  <MessageSquare className="h-4 w-4 text-accent" />
+                  <h3 className="text-sm font-semibold text-foreground">Resumo Gerado</h3>
+                </div>
+                
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    {resumoPatient.resumo}
+                  </p>
+                </div>
+              </div>
+
+              {/* Metadados */}
+              <div className="flex items-center gap-4 pt-3 border-t border-border/50 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  <span>Gerado automaticamente</span>
+                </div>
+                {resumoPatient.last_visit && (
+                  <div className="flex items-center gap-1">
+                    <span>•</span>
+                    <span>Última atualização: {new Date(resumoPatient.last_visit).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResumoPatient(null)}>
               Fechar
             </Button>
           </DialogFooter>

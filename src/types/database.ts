@@ -115,6 +115,7 @@ export interface Database {
           total_visits: number
           kanban_status: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
           observations: string | null
+          resumo: string | null
         }
         Insert: {
           id?: string
@@ -128,6 +129,7 @@ export interface Database {
           total_visits?: number
           kanban_status?: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
           observations?: string | null
+          resumo?: string | null
         }
         Update: {
           id?: string
@@ -141,6 +143,7 @@ export interface Database {
           total_visits?: number
           kanban_status?: 'novo_contato' | 'qualificado' | 'em_atendimento' | 'agendado' | 'aguardando_confirmacao' | 'concluido'
           observations?: string | null
+          resumo?: string | null
         }
       }
       appointments: {
@@ -158,6 +161,7 @@ export interface Database {
           status: 'confirmed' | 'pending' | 'completed' | 'cancelled'
           notes: string | null
           observations: string | null
+          session_id: string | null
         }
         Insert: {
           id?: string
@@ -173,6 +177,7 @@ export interface Database {
           status?: 'confirmed' | 'pending' | 'completed' | 'cancelled'
           notes?: string | null
           observations?: string | null
+          session_id?: string | null
         }
         Update: {
           id?: string
@@ -188,6 +193,7 @@ export interface Database {
           status?: 'confirmed' | 'pending' | 'completed' | 'cancelled'
           notes?: string | null
           observations?: string | null
+          session_id?: string | null
         }
       }
       settings: {
