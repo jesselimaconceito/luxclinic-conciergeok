@@ -978,27 +978,6 @@ export default function AgentIA() {
             </div>
           )}
         </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="bg-background rounded-lg p-3 border border-border/50">
-            <p className="text-xs text-muted-foreground mb-1">Custo médio</p>
-            <p className="text-lg font-semibold text-foreground">
-              {totalCost > 0 
-                ? (totalCost / (totalTokens / 1000)).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 8
-                  }) + '/1k'
-                : 'R$ 0,00/1k'
-              }
-            </p>
-          </div>
-          <div className="bg-background rounded-lg p-3 border border-border/50">
-            <p className="text-xs text-muted-foreground mb-1">Status</p>
-            <p className="text-lg font-semibold text-success">Ativo</p>
-          </div>
-        </div>
       </Card>
 
       {/* Estatísticas */}

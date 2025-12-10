@@ -32,6 +32,7 @@ import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import Organizations from "./pages/super-admin/Organizations";
 import OrganizationForm from "./pages/super-admin/OrganizationForm";
 import Plans from "./pages/super-admin/Plans";
+import TokenUsage from "./pages/super-admin/TokenUsage";
 import SuperAdminSettings from "./pages/super-admin/Settings";
 
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/super-admin/organizations/new" element={<OrganizationForm />} />
                 <Route path="/super-admin/organizations/:id/edit" element={<OrganizationForm />} />
                 <Route path="/super-admin/plans" element={<Plans />} />
+                <Route path="/super-admin/token-usage" element={<TokenUsage />} />
                 <Route path="/super-admin/settings" element={<SuperAdminSettings />} />
               </Route>
 

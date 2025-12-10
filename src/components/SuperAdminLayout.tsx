@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, Shield, Building2, BarChart3, Settings, LogOut, Crown } from "lucide-react";
+import { Menu, X, Shield, Building2, BarChart3, Settings, LogOut, Crown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const menuItems = [
   { path: "/super-admin/dashboard", label: "Dashboard", icon: BarChart3 },
   { path: "/super-admin/organizations", label: "Organizações", icon: Building2 },
   { path: "/super-admin/plans", label: "Planos", icon: Crown },
+  { path: "/super-admin/token-usage", label: "Gastos de Token", icon: Zap },
   { path: "/super-admin/settings", label: "Configurações", icon: Settings },
 ];
 
