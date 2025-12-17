@@ -1,7 +1,7 @@
 import { useAuth } from "./useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export interface PlanLimits {
   max_agendamentos_mes: number | null;
@@ -58,13 +58,13 @@ export function usePlanFeatures() {
     analytics: planConfig?.analytics ?? false,
   };
 
-  // Limites do plano
-  const limits: PlanLimits = {
+  // Limites do plano (memoizado para evitar recriação)
+  const limits: PlanLimits = useMemo(() => ({
     max_agendamentos_mes: planConfig?.max_agendamentos_mes ?? null,
     max_mensagens_whatsapp_mes: planConfig?.max_mensagens_whatsapp_mes ?? null,
     max_usuarios: planConfig?.max_usuarios ?? null,
     max_pacientes: planConfig?.max_pacientes ?? null,
-  };
+  }), [planConfig?.max_agendamentos_mes, planConfig?.max_mensagens_whatsapp_mes, planConfig?.max_usuarios, planConfig?.max_pacientes]);
 
   // Função para verificar se tem acesso a uma feature
   const hasFeature = (feature: keyof PlanFeatures): boolean => {

@@ -74,7 +74,8 @@ export default function CRM() {
         setLimitInfo({ current: result.current, max: result.max });
       });
     }
-  }, [isDialogOpen, checkLimit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen]);
 
   const {
     register,
