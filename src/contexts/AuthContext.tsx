@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { AuthContextType, Profile, Organization, SignUpData } from '@/types/auth';
@@ -11,18 +11,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const isLoggingOutRef = useRef(false);
 
   // Carregar dados do perfil e organização
-  const loadUserData = async (userId: string) => {
+  const loadUserData = async (userId: string, forceRefresh = false) => {
     try {
-      // Buscar profile
+      setLoading(true);
+      
+      // Limpar cache do profile anterior se forçar refresh
+      if (forceRefresh) {
+        console.log('🔄 Forçando atualização do profile...');
+        setProfile(null);
+        setOrganization(null);
+      }
+      
+      console.log('📥 Carregando dados do usuário:', userId);
+      
+      // Buscar profile - sempre buscar do banco (Supabase não usa cache HTTP)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      console.log('📊 Profile carregado:', profileData);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        // Se o profile não existe, fazer logout automático
+        if (profileError.code === 'PGRST116' && !isLoggingOutRef.current) {
+          console.error('Profile não encontrado. Fazendo logout...');
+          isLoggingOutRef.current = true;
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          setOrganization(null);
+          toast.error('Perfil não encontrado. Por favor, entre em contato com o suporte.');
+          return;
+        }
+        throw profileError;
+      }
+
+      if (!profileData && !isLoggingOutRef.current) {
+        // Profile não existe
+        console.error('Profile não encontrado. Fazendo logout...');
+        isLoggingOutRef.current = true;
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setOrganization(null);
+        toast.error('Perfil não encontrado. Por favor, entre em contato com o suporte.');
+        return;
+      }
+
+      console.log('✅ Profile encontrado:', {
+        id: profileData.id,
+        full_name: profileData.full_name,
+        is_super_admin: profileData.is_super_admin,
+        organization_id: profileData.organization_id,
+        role: profileData.role
+      });
+      
       setProfile(profileData);
 
       // Buscar organization (apenas se não for super admin)
@@ -33,41 +81,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', profileData.organization_id)
           .single();
 
-        if (orgError) throw orgError;
-        setOrganization(orgData);
+        if (orgError) {
+          console.error('Erro ao carregar organização:', orgError);
+          // Não fazer logout se a organização não existir, apenas logar o erro
+        } else {
+          console.log('✅ Organização carregada:', orgData.name);
+          setOrganization(orgData);
+        }
       } else if (profileData?.is_super_admin) {
         // Super admins não têm organização
+        console.log('✅ Super admin - sem organização');
         setOrganization(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar dados do usuário:', error);
-      setProfile(null);
-      setOrganization(null);
+      // Se for erro de profile não encontrado, fazer logout
+      if ((error?.code === 'PGRST116' || error?.message?.includes('No rows')) && !isLoggingOutRef.current) {
+        isLoggingOutRef.current = true;
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setOrganization(null);
+        toast.error('Perfil não encontrado. Por favor, entre em contato com o suporte.');
+      } else {
+        setProfile(null);
+        setOrganization(null);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   // Verificar sessão inicial
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadUserData(session.user.id);
+        await loadUserData(session.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Listener para mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      // Resetar flag de logout quando não há sessão
+      if (!session) {
+        isLoggingOutRef.current = false;
+      }
+      
       setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserData(session.user.id);
+      if (session?.user && !isLoggingOutRef.current) {
+        // Forçar refresh em eventos de login/token refresh
+        const forceRefresh = event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED';
+        await loadUserData(session.user.id, forceRefresh);
       } else {
         setProfile(null);
         setOrganization(null);
+        setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Login
@@ -204,6 +288,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Recarregar dados do usuário (forçar atualização)
+  const reloadUserData = async () => {
+    if (user) {
+      await loadUserData(user.id, true);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     profile,
@@ -214,6 +305,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     resetPassword,
+    reloadUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

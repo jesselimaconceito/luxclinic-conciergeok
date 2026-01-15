@@ -13,15 +13,21 @@ export default function Login() {
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirecionar após login bem-sucedido e profile carregado
+  // Redirecionar se já estiver autenticado
   useEffect(() => {
-    if (user && profile && !authLoading) {
-      // Redirecionar baseado no tipo de usuário
-      if (profile.is_super_admin) {
-        navigate('/super-admin/dashboard');
-      } else {
-        navigate('/app/dashboard');
-      }
+    // Só redirecionar se não estiver carregando e tiver user e profile
+    if (!authLoading && user && profile) {
+      // Pequeno delay para garantir que tudo está sincronizado
+      const timer = setTimeout(() => {
+        // Redirecionar baseado no tipo de usuário
+        if (profile.is_super_admin) {
+          navigate('/super-admin/dashboard', { replace: true });
+        } else {
+          navigate('/app/dashboard', { replace: true });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [user, profile, authLoading, navigate]);
 
@@ -31,7 +37,9 @@ export default function Login() {
 
     try {
       await signIn(email, password);
+      // Aguardar um pouco para garantir que o profile foi carregado
       // O redirecionamento será feito pelo useEffect acima
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       // Erro já tratado no AuthContext
       setLoading(false);

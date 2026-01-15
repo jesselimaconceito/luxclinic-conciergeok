@@ -31,6 +31,7 @@ export interface AuthContextType {
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  reloadUserData: () => Promise<void>;
 }
 
 // Tipo específico para criar super admin
