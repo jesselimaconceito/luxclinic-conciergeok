@@ -1,15 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Função para obter headers CORS
+const getCorsHeaders = (origin: string | null) => {
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Max-Age': '86400',
+  }
+  return headers
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
 
   try {
@@ -116,17 +128,15 @@ serve(async (req) => {
 
     console.log('📝 Slug gerado:', slug)
 
-    // 3. Criar organização
-    const { data: orgData, error: orgError } = await supabaseAdmin
-      .from('organizations')
-      .insert({
-        name: organizationName,
-        slug,
-        is_active: isActive,
-        subscription_plan: subscriptionPlan,
+    // 3. Criar organização usando função SQL que contorna RLS
+    const { data: orgDataArray, error: orgError } = await supabaseAdmin
+      .rpc('create_organization', {
+        p_name: organizationName,
+        p_slug: slug,
+        p_is_active: isActive,
+        p_subscription_plan: subscriptionPlan,
+        p_settings: {}
       })
-      .select()
-      .single()
 
     if (orgError) {
       console.error('❌ Erro ao criar organização:', orgError)
@@ -134,6 +144,14 @@ serve(async (req) => {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       throw orgError
     }
+
+    if (!orgDataArray || orgDataArray.length === 0) {
+      console.error('❌ Organização não foi criada')
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      throw new Error('Erro ao criar organização')
+    }
+
+    const orgData = orgDataArray[0]
 
     console.log('✅ Organização criada:', orgData.id)
 
