@@ -49,10 +49,14 @@ export default function Register() {
         organizationName: formData.organizationName,
       });
       
+      // Aguardar um pouco para mostrar a mensagem de sucesso
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       // Redirecionar para login
       navigate('/login');
     } catch (error) {
       // Erro já tratado no AuthContext
+      console.error('Erro no registro:', error);
     } finally {
       setLoading(false);
     }

@@ -183,6 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Erro ao criar usuário');
 
+      console.log('✅ Usuário criado no Auth:', authData.user.id);
+
       // 2. Gerar slug da organização
       const slug = organizationName
         .toLowerCase()
@@ -191,46 +193,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
-        .trim();
+        .trim() + '-' + Date.now();
 
-      // 3. Criar organização
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: organizationName,
-          slug: slug + '-' + Date.now(), // Adicionar timestamp para unicidade
-          settings: {},
-        })
-        .select()
-        .single();
+      console.log('📝 Slug gerado:', slug);
 
-      if (orgError) throw orgError;
-
-      // 4. Criar perfil do usuário
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          organization_id: orgData.id,
-          full_name: fullName,
-          role: 'admin', // Primeiro usuário é admin
+      // 3. Usar função SQL para criar organização + profile + settings de forma atômica
+      const { data: registerData, error: registerError } = await supabase
+        .rpc('register_user_with_organization', {
+          p_user_id: authData.user.id,
+          p_full_name: fullName,
+          p_organization_name: organizationName,
+          p_slug: slug
         });
 
-      if (profileError) throw profileError;
+      if (registerError) {
+        console.error('❌ Erro ao registrar usuário com organização:', registerError);
+        throw registerError;
+      }
 
-      // 5. Criar settings padrão para a organização
-      const { error: settingsError } = await supabase
-        .from('settings')
-        .insert({
-          organization_id: orgData.id,
-          clinic_name: organizationName,
-          doctor_name: fullName,
-          subscription_plan: 'premium',
-        });
+      console.log('✅ Registro completo:', registerData);
 
-      if (settingsError) throw settingsError;
-
-      toast.success('Cadastro realizado com sucesso! Faça login para continuar.');
+      // Verificar se precisa confirmar email
+      if (authData.session) {
+        // Email já confirmado, pode fazer login direto
+        toast.success('Cadastro realizado com sucesso!');
+      } else {
+        // Precisa confirmar email
+        toast.success('Cadastro realizado! Verifique seu email para confirmar a conta.');
+      }
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
       toast.error(error.message || 'Erro ao fazer cadastro');
