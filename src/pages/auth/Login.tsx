@@ -26,10 +26,17 @@ export default function Login() {
           navigate('/app/dashboard', { replace: true });
         }
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [user, profile, authLoading, navigate]);
+
+  // Resetar loading se houver erro ou logout durante o processo
+  useEffect(() => {
+    if (loading && !authLoading && !user) {
+      setLoading(false);
+    }
+  }, [loading, authLoading, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -27,10 +27,29 @@ serve(async (req) => {
   try {
     console.log('🚀 Iniciando create-organization Edge Function...');
     
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    if (!supabaseUrl) {
+      console.error('❌ SUPABASE_URL não configurado no ambiente da Edge Function')
+      throw new Error('Configuração do Supabase ausente (SUPABASE_URL).')
+    }
+
+    // IMPORTANTE:
+    // Para criar usuários via Admin API e contornar RLS com segurança, precisamos do Service Role.
+    // Esse secret PRECISA estar configurado no projeto Supabase (Edge Function Secrets).
+    if (!serviceRoleKey) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY não configurado nos Secrets da Edge Function')
+      throw new Error(
+        'Configuração do Supabase ausente (SUPABASE_SERVICE_ROLE_KEY). ' +
+          'Configure este secret no Supabase e redeploy a função.'
+      )
+    }
+
     // Criar cliente Supabase com Service Role (admin)
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl,
+      serviceRoleKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -45,7 +64,10 @@ serve(async (req) => {
     
     if (!authHeader) {
       console.error('❌ Nenhum header de autorização encontrado');
-      throw new Error('Não autenticado')
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
     
     const token = authHeader.replace('Bearer ', '')
@@ -58,12 +80,18 @@ serve(async (req) => {
     
     if (userError) {
       console.error('❌ Erro ao verificar usuário:', userError);
-      throw new Error('Não autenticado: ' + userError.message)
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado: ' + userError.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
     
     if (!user) {
       console.error('❌ Usuário não encontrado no token');
-      throw new Error('Não autenticado')
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
 
     console.log('✅ Usuário autenticado:', user.id);
@@ -81,7 +109,10 @@ serve(async (req) => {
 
     if (!profile || !profile.is_super_admin) {
       console.error('❌ Usuário não é super admin');
-      throw new Error('Apenas super admins podem criar organizações')
+      return new Response(
+        JSON.stringify({ error: 'Apenas super admins podem criar organizações' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
     }
     
     console.log('✅ Verificação de super admin OK');
@@ -223,7 +254,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
       }
     )
   }

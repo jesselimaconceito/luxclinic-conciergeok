@@ -1,1 +1,5 @@
 project_id = "ppcqtaigpylorlnypbxz"
+
+# Desabilitar verificação JWT automática para funções que fazem verificação manual
+[functions.create-organization]
+verify_jwt = false

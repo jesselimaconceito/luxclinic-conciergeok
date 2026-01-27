@@ -101,7 +101,7 @@ export default function Integrations() {
     const checkConnection = async () => {
       try {
         console.log("Verificando conexão...");
-        
+
         const payload = {
           instanceId: dbInstance.instance_id,
           token: dbInstance.token,
@@ -112,7 +112,7 @@ export default function Integrations() {
           organizationName: organization?.name,
         };
 
-        const response = await fetch("https://webhook.u4digital.com.br/webhook/verificar-conexao", {
+        const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/verificar-conexao", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -130,19 +130,19 @@ export default function Integrations() {
 
         // Verificar se está conectado (aceitar vários formatos de resposta)
         const data = Array.isArray(result) ? result[0] : result;
-        
+
         // Aceita: response: "sucesso", connected: true, status: "connected", state: "open"
-        const isConnected = 
-          data.response === "sucesso" || 
-          data.connected === true || 
-          data.status === "connected" || 
+        const isConnected =
+          data.response === "sucesso" ||
+          data.connected === true ||
+          data.status === "connected" ||
           data.state === "open";
 
         console.log("isConnected:", isConnected, "data:", data);
 
         if (isConnected) {
           console.log("✅ WhatsApp conectado com sucesso!");
-          
+
           // Atualizar status no banco
           const { error: updateError } = await supabase
             .from("whatsapp_instances")
@@ -195,7 +195,7 @@ export default function Integrations() {
     try {
       setIsLoadingInstance(true);
       console.log("Buscando instância para organization_id:", organization.id);
-      
+
       const { data, error } = await supabase
         .from("whatsapp_instances")
         .select("*")
@@ -212,7 +212,7 @@ export default function Integrations() {
       if (data) {
         console.log("Instância encontrada:", data);
         setDbInstance(data);
-        
+
         // Converter dados do banco para o formato da interface
         const instance: WhatsAppInstance = {
           id: data.instance_id,
@@ -222,7 +222,7 @@ export default function Integrations() {
           phone: data.phone,
           created: data.webhook_created || data.created_at,
         };
-        
+
         console.log("Instance data convertida:", instance);
         setInstanceData(instance);
         setShowPairingCard(true);
@@ -246,7 +246,7 @@ export default function Integrations() {
         .replace(/[^a-z0-9\s-]/g, "")
         .trim()
         .replace(/\s+/g, "-");
-      
+
       setFormData((prev) => ({ ...prev, companyName: formattedName }));
     }
   }, [isModalOpen, organization]);
@@ -271,7 +271,7 @@ export default function Integrations() {
         });
 
       if (error) throw error;
-      
+
       console.log("Instância salva no banco de dados");
     } catch (error) {
       console.error("Erro ao salvar no banco:", error);
@@ -299,7 +299,7 @@ export default function Integrations() {
     try {
       setIsConnecting(true);
 
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/criar-instancia-cliente", {
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/criar-instancia-cliente", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -318,25 +318,25 @@ export default function Integrations() {
       }
 
       const result = await response.json();
-      
+
       // O webhook retorna um array, pegar o primeiro item
       const instance = Array.isArray(result) ? result[0] : result;
-      
+
       if (!instance || !instance.id) {
         throw new Error("Resposta inválida do servidor");
       }
 
       // Salvar no banco de dados
       await saveToDatabase(instance);
-      
+
       // Mostrar card de pareamento
       setInstanceData(instance);
       setIsModalOpen(false);
       setShowPairingCard(true);
       setFormData({ companyName: "", phone: "" });
-      
+
       toast.success("Instância criada com sucesso!");
-      
+
     } catch (error: any) {
       console.error("Erro ao conectar WhatsApp:", error);
       toast.error(error.message || "Erro ao conectar WhatsApp");
@@ -347,7 +347,7 @@ export default function Integrations() {
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
-    
+
     if (numbers.length <= 10) {
       return numbers.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3");
     } else {
@@ -368,7 +368,7 @@ export default function Integrations() {
 
     try {
       setIsDeletingInstance(true);
-      
+
       const payload = {
         instanceId: dbInstance.instance_id,
         token: dbInstance.token,
@@ -378,14 +378,14 @@ export default function Integrations() {
         organizationId: organization?.id,
         organizationName: organization?.name,
       };
-      
+
       console.log("Apagando instância, payload:", payload);
-      
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/apagar-instancia", {
+
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/apagar-instancia", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-    },
+        },
         body: JSON.stringify(payload),
       });
 
@@ -396,7 +396,7 @@ export default function Integrations() {
 
       const result = await response.json();
       console.log("Resultado apagar instância:", result);
-      
+
       // Deletar do banco de dados local
       const { error: deleteError } = await supabase
         .from("whatsapp_instances")
@@ -415,9 +415,9 @@ export default function Integrations() {
       setInstanceData(null);
       setShowPairingCard(false);
       setShowDeleteDialog(false);
-      
+
       toast.success("Instância apagada com sucesso!");
-      
+
     } catch (error: any) {
       console.error("Erro ao apagar instância:", error);
       toast.error(error.message || "Erro ao apagar instância");
@@ -434,7 +434,7 @@ export default function Integrations() {
 
     try {
       setIsListingInstance(true);
-      
+
       const payload = {
         instanceId: dbInstance.instance_id,
         token: dbInstance.token,
@@ -444,10 +444,10 @@ export default function Integrations() {
         organizationId: organization?.id,
         organizationName: organization?.name,
       };
-      
+
       console.log("Listando instância, payload:", payload);
-      
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/listar-instancia", {
+
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/listar-instancia", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -462,17 +462,17 @@ export default function Integrations() {
 
       const result = await response.json();
       console.log("Resultado listar instância:", result);
-      
+
       // Processar resposta (pode ser array ou objeto)
       const data = Array.isArray(result) ? result[0] : result;
-      
+
       if (data) {
         setInstanceDetails(data);
         toast.success("Instância carregada com sucesso!");
       } else {
         toast.info("Nenhum detalhe retornado");
       }
-      
+
     } catch (error: any) {
       console.error("Erro ao listar instância:", error);
       toast.error(error.message || "Erro ao listar instância");
@@ -485,7 +485,7 @@ export default function Integrations() {
     console.log("handleGenerateQRCode chamado");
     console.log("dbInstance atual:", dbInstance);
     console.log("organization:", organization);
-    
+
     if (!dbInstance) {
       console.error("dbInstance está null/undefined");
       toast.error("Nenhuma instância encontrada");
@@ -494,7 +494,7 @@ export default function Integrations() {
 
     try {
       setIsGeneratingQR(true);
-      
+
       const payload = {
         instanceId: dbInstance.instance_id,
         token: dbInstance.token,
@@ -504,10 +504,10 @@ export default function Integrations() {
         organizationId: organization?.id,
         organizationName: organization?.name,
       };
-      
+
       console.log("Payload enviado:", payload);
-      
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/gerar-qrcode", {
+
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/gerar-qrcode", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -522,19 +522,19 @@ export default function Integrations() {
 
       const result = await response.json();
       console.log("Resultado do webhook:", result);
-      
+
       // O endpoint pode retornar um array ou objeto direto
       const data = Array.isArray(result) ? result[0] : result;
-      
+
       console.log("Data processada:", data);
-      
+
       // Extrair qrCode e pairingCode (aceita vários formatos de nome)
       const qrCode = data.qrCode || data.qrcode || data.QRCode || null;
       const pairingCode = data.pairCode || data.paircode || data.pairingCode || data.pairing_code || null;
-      
+
       console.log("QR Code extraído:", qrCode);
       console.log("Pairing Code extraído:", pairingCode);
-      
+
       // Processar resposta - pode ter qrCode ou pairingCode
       if (qrCode || pairingCode) {
         // Atualizar no banco de dados
@@ -569,7 +569,7 @@ export default function Integrations() {
         console.warn("Resposta do webhook não contém qrCode nem pairingCode");
         toast.info("Processando conexão...");
       }
-      
+
     } catch (error: any) {
       console.error("Erro ao gerar QR Code:", error);
       toast.error(error.message || "Erro ao gerar QR Code");
@@ -580,7 +580,7 @@ export default function Integrations() {
 
   // Loading ao carregar instância
   if (isLoadingInstance) {
-  return (
+    return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
@@ -595,13 +595,13 @@ export default function Integrations() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
+          {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold text-foreground">WhatsApp Conectado</h1>
             <p className="text-muted-foreground">
               Sua instância está ativa e funcionando
-        </p>
-      </div>
+            </p>
+          </div>
 
           {/* Card da Instância */}
           <Card className="p-6">
@@ -621,7 +621,7 @@ export default function Integrations() {
                   {/* Status Badge */}
                   <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
                     <div className="h-4 w-4 bg-green-500 rounded-full animate-pulse" />
-      </div>
+                  </div>
                 </div>
 
                 {/* Nome e Status */}
@@ -688,7 +688,7 @@ export default function Integrations() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Apagar Instância do WhatsApp?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. A instância <strong>{instanceDetails?.name}</strong> será 
+                  Esta ação não pode ser desfeita. A instância <strong>{instanceDetails?.name}</strong> será
                   permanentemente removida e você precisará conectar novamente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -746,7 +746,7 @@ export default function Integrations() {
                 {dbInstance.status === "connected" ? "WhatsApp Conectado" : "Conecte seu WhatsApp"}
               </h2>
               <p className="text-muted-foreground">
-                {dbInstance.status === "connected" 
+                {dbInstance.status === "connected"
                   ? "Sua instância está conectada e funcionando"
                   : "Escaneie o QR Code ou use o código de pareamento abaixo"
                 }
@@ -824,9 +824,9 @@ export default function Integrations() {
                     // Exibir QR Code
                     <div className="flex flex-col items-center space-y-3">
                       <div className="bg-white p-6 rounded-lg shadow-lg relative">
-                        <img 
-                          src={dbInstance.qr_code} 
-                          alt="QR Code do WhatsApp" 
+                        <img
+                          src={dbInstance.qr_code}
+                          alt="QR Code do WhatsApp"
                           className="w-64 h-64 object-contain"
                         />
                         {isCheckingConnection && (
@@ -923,7 +923,7 @@ export default function Integrations() {
                       </>
                     )}
                   </Button>
-                  
+
                   {isCheckingConnection && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
                       <div className="flex gap-1">
@@ -948,108 +948,108 @@ export default function Integrations() {
     <PlanGuard feature="integracao_whatsapp">
       <>
         <div className="flex items-center justify-center min-h-screen p-4 md:p-6 lg:p-8">
-        <div className="text-center space-y-6 max-w-md animate-fade-in">
-          {/* Ícone */}
-          <div className="flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
-              <MessageSquare className="h-10 w-10 text-accent" />
+          <div className="text-center space-y-6 max-w-md animate-fade-in">
+            {/* Ícone */}
+            <div className="flex justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
+                <MessageSquare className="h-10 w-10 text-accent" />
+              </div>
             </div>
+
+            {/* Texto */}
+            <div className="space-y-2">
+              <p className="text-base md:text-lg text-muted-foreground">
+                Clique no botão para integrarmos o seu whatsapp
+              </p>
+            </div>
+
+            {/* Botão */}
+            <Button
+              onClick={handleConnect}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700 text-white gap-2 text-lg px-8 py-6"
+            >
+              <MessageSquare className="h-5 w-5" />
+              Comece por aqui
+            </Button>
           </div>
-
-          {/* Texto */}
-          <div className="space-y-2">
-            <p className="text-base md:text-lg text-muted-foreground">
-              Clique no botão para integrarmos o seu whatsapp
-            </p>
         </div>
 
-          {/* Botão */}
-          <Button
-            onClick={handleConnect}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700 text-white gap-2 text-lg px-8 py-6"
-          >
-            <MessageSquare className="h-5 w-5" />
-            Comece por aqui
-          </Button>
-        </div>
-      </div>
+        {/* Modal de Conexão */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Conectar WhatsApp</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo para integrar seu WhatsApp Business
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Modal de Conexão */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Conectar WhatsApp</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para integrar seu WhatsApp Business
-            </DialogDescription>
-          </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* Nome da Empresa */}
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Nome da Empresa *</Label>
+                <Input
+                  id="companyName"
+                  value={formData.companyName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, companyName: e.target.value })
+                  }
+                  placeholder="ex: clinica-gabriella"
+                  disabled={isConnecting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Será usado como identificador único (sem espaços)
+                </p>
+              </div>
 
-          <div className="space-y-4 py-4">
-            {/* Nome da Empresa */}
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Nome da Empresa *</Label>
-              <Input
-                id="companyName"
-                value={formData.companyName}
-                onChange={(e) =>
-                  setFormData({ ...formData, companyName: e.target.value })
-                }
-                placeholder="ex: clinica-gabriella"
-                disabled={isConnecting}
-              />
-              <p className="text-xs text-muted-foreground">
-                Será usado como identificador único (sem espaços)
-              </p>
+              {/* Telefone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone do WhatsApp *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(11) 98888-8888"
+                  disabled={isConnecting}
+                  maxLength={15}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Número que será conectado ao WhatsApp Business
+                </p>
+              </div>
             </div>
 
-            {/* Telefone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone do WhatsApp *</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={handlePhoneChange}
-                placeholder="(11) 98888-8888"
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
                 disabled={isConnecting}
-                maxLength={15}
-              />
-              <p className="text-xs text-muted-foreground">
-                Número que será conectado ao WhatsApp Business
-              </p>
-      </div>
-    </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsModalOpen(false)}
-              disabled={isConnecting}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isConnecting}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Conectando...
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Conectar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isConnecting}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Conectando...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Conectar
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     </PlanGuard>
   );

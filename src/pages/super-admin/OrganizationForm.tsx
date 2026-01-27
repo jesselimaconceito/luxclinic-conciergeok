@@ -81,7 +81,7 @@ export default function OrganizationForm() {
 
   const isActive = watch("is_active");
   const subscriptionPlan = watch("subscription_plan");
-  
+
   // Carregar planos disponíveis
   const { data: plans = [] } = useQuery({
     queryKey: ['subscription-plans'],
@@ -90,7 +90,7 @@ export default function OrganizationForm() {
         .from('subscription_plan_configs')
         .select('*')
         .order('plan_id', { ascending: true });
-      
+
       if (error) throw error;
       return data;
     },
@@ -135,7 +135,7 @@ export default function OrganizationForm() {
       }
 
       setLogoFile(file);
-      
+
       // Preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -171,7 +171,7 @@ export default function OrganizationForm() {
 
       console.log("Configurando webhook, payload:", payload);
 
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/configurar-webhook", {
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/configurar-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -194,7 +194,7 @@ export default function OrganizationForm() {
         // Salvar URL do webhook no banco (apenas webhook_url existe atualmente)
         const { error: updateError } = await supabase
           .from("whatsapp_instances")
-          .update({ 
+          .update({
             webhook_url: webhookData.url,
           })
           .eq("id", whatsappInstance.id);
@@ -237,26 +237,38 @@ export default function OrganizationForm() {
 
       if (orgError) throw orgError;
 
-      // Buscar configuração do Agent IA
+      // Buscar configuração do Agent IA (pode não existir)
       const { data: agentData, error: agentError } = await supabase
         .from("agent_ia_config")
         .select("*")
         .eq("organization_id", id)
-        .single();
+        .maybeSingle();
 
-      // Buscar instância WhatsApp
+      if (agentError) {
+        console.warn("Aviso ao buscar agent_ia_config:", agentError);
+      }
+
+      // Buscar instância WhatsApp (pode não existir)
       const { data: whatsappData, error: whatsappError } = await supabase
         .from("whatsapp_instances")
         .select("*")
         .eq("organization_id", id)
-        .single();
+        .maybeSingle();
 
-      // Buscar configurações gerais
+      if (whatsappError) {
+        console.warn("Aviso ao buscar whatsapp_instances:", whatsappError);
+      }
+
+      // Buscar configurações gerais (pode não existir)
       const { data: settingsData, error: settingsError } = await supabase
         .from("settings")
         .select("*")
         .eq("organization_id", id)
-        .single();
+        .maybeSingle();
+
+      if (settingsError) {
+        console.warn("Aviso ao buscar settings:", settingsError);
+      }
 
       // Buscar perfis (usuários) da organização
       const { data: profilesData, error: profilesError } = await supabase
@@ -267,7 +279,7 @@ export default function OrganizationForm() {
       // Mapear plano para número
       // plano_a = 1 (atendimento)
       // plano_b = 2 (atendimento + conhecimento)
-      // plano_c = 3 (completo)
+      // plano_c = 3 (atendimento completo)
       // plano_d = 4 (enterprise)
       const planNumberMap: Record<string, number> = {
         'plano_a': 1,
@@ -275,7 +287,15 @@ export default function OrganizationForm() {
         'plano_c': 3,
         'plano_d': 4,
       };
-      const planNumber = planNumberMap[orgData?.subscription_plan] || 1;
+
+      // Usar o valor do formulário (subscriptionPlan via watch) como prioridade sobre o banco
+      const currentPlan = subscriptionPlan || orgData?.subscription_plan;
+      console.log("📋 Subscription Plan do formulário:", subscriptionPlan);
+      console.log("📋 Subscription Plan do banco:", orgData?.subscription_plan);
+      console.log("📋 Subscription Plan usado:", currentPlan);
+
+      const planNumber = currentPlan ? planNumberMap[currentPlan] || 1 : 1;
+      console.log("📋 Plan Number calculado:", planNumber);
 
       // Montar payload com TODAS as informações
       const payload = {
@@ -291,7 +311,7 @@ export default function OrganizationForm() {
       console.log("Enviando dados para criação de workflow:", payload);
 
       // Chamar webhook
-      const response = await fetch("https://webhook.u4digital.com.br/webhook/criacao-fluxo", {
+      const response = await fetch("https://n8nwb.conceitoallmarketing.com/webhook/criacao-fluxo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -395,19 +415,21 @@ export default function OrganizationForm() {
     mutationFn: async (data: OrganizationFormData) => {
       console.log("🔍 Iniciando saveMutation...");
       console.log("🔍 isEditing:", isEditing);
-      
+
+      // Obter sessão atual (já está válida pelo AuthContext)
+      console.log("🔍 Obtendo sessão atual...");
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log("🔍 Session completa:", JSON.stringify(session, null, 2));
+
+      console.log("🔍 Session obtida:", JSON.stringify(session, null, 2));
       console.log("🔍 SessionError:", sessionError);
       console.log("🔍 Access Token presente:", !!session?.access_token);
       console.log("🔍 Access Token (primeiros 50 chars):", session?.access_token?.substring(0, 50) + '...');
       console.log("🔍 User ID:", session?.user?.id);
       console.log("🔍 User Email:", session?.user?.email);
-      
+
       if (sessionError || !session || !session.access_token) {
         console.error("❌ Erro ao obter sessão:", sessionError);
-        throw new Error("Sessão expirada. Por favor, faça logout e login novamente.");
+        throw new Error("Sessão inválida. Por favor, faça logout e login novamente.");
       }
 
       let logoUrl = currentLogoUrl;
@@ -442,51 +464,82 @@ export default function OrganizationForm() {
 
         if (error) throw error;
       } else {
-        // Chamar Edge Function para criar
-        console.log("📞 Chamando Edge Function create-organization...");
-        console.log("📞 URL:", `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-organization`);
-        console.log("📞 VITE_SUPABASE_URL:", import.meta.env.VITE_SUPABASE_URL);
-        console.log("📞 Authorization Header:", `Bearer ${session.access_token.substring(0, 50)}...`);
-        console.log("📞 Payload:", {
-          organizationName: data.name,
-          adminEmail: data.adminEmail,
-          adminFullName: data.adminFullName,
-          isActive: data.is_active,
-          subscriptionPlan: data.subscription_plan,
+        // Chamar Edge Function para criar (via supabase.functions.invoke)
+        // Isso garante que o JWT correto seja enviado e evita problemas de CORS/headers.
+        console.log("📞 Chamando Edge Function create-organization (invoke)...");
+
+        // Adicionar timeout de 30 segundos para evitar carregamento infinito
+        const invokePromise = supabase.functions.invoke("create-organization", {
+          body: {
+            organizationName: data.name,
+            adminEmail: data.adminEmail,
+            adminPassword: data.adminPassword,
+            adminFullName: data.adminFullName,
+            isActive: data.is_active,
+            subscriptionPlan: data.subscription_plan,
+          },
         });
-        
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-organization`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
-            },
-            body: JSON.stringify({
-              organizationName: data.name,
-              adminEmail: data.adminEmail,
-              adminPassword: data.adminPassword,
-              adminFullName: data.adminFullName,
-              isActive: data.is_active,
-              subscriptionPlan: data.subscription_plan,
-            }),
-          }
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout: Edge Function demorou mais de 30 segundos')), 30000)
         );
 
-        console.log("📞 Response status:", response.status);
-        console.log("📞 Response statusText:", response.statusText);
-        console.log("📞 Response headers:", Object.fromEntries(response.headers.entries()));
-        
-        const result = await response.json();
-        console.log("📞 Response body:", result);
+        const { data: result, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
 
-        if (!response.ok) {
-          console.error("❌ Erro na resposta:", result);
-          throw new Error(result.error || "Erro ao criar organização");
+        console.log("📞 Invoke result:", result);
+        console.log("📞 Invoke error (full):", error);
+
+        if (error) {
+          // Logar cada propriedade separadamente para ver tudo
+          console.error("❌ Edge Function ERROR - message:", error.message);
+          console.error("❌ Edge Function ERROR - name:", (error as any).name);
+          console.error("❌ Edge Function ERROR - context (stringified):", JSON.stringify((error as any).context, null, 2));
+          console.error("❌ Edge Function ERROR - status:", (error as any).context?.status);
+          console.error("❌ Edge Function ERROR - statusText:", (error as any).context?.statusText);
+          console.error("❌ Edge Function ERROR - body:", (error as any).context?.body);
+
+          // Tentar extrair mensagem do body da resposta
+          const errorContext = (error as any).context;
+          let errorMessage = error.message;
+
+          if (errorContext?.body) {
+            console.error("❌ Tentando parsear body:", errorContext.body);
+            try {
+              // Se o body for ReadableStream, precisamos lê-lo
+              if (errorContext.body instanceof ReadableStream) {
+                const reader = errorContext.body.getReader();
+                const { value } = await reader.read();
+                const bodyText = new TextDecoder().decode(value);
+                console.error("❌ Body (texto):", bodyText);
+
+                const parsed = JSON.parse(bodyText);
+                console.error("❌ Body parseado:", parsed);
+                errorMessage = parsed.error || parsed.message || errorMessage;
+              } else {
+                const parsed = typeof errorContext.body === 'string'
+                  ? JSON.parse(errorContext.body)
+                  : errorContext.body;
+                console.error("❌ Body parseado:", parsed);
+                errorMessage = parsed.error || parsed.message || errorMessage;
+              }
+            } catch (e) {
+              console.error("❌ Erro ao parsear body:", e);
+            }
+          }
+
+          // Adicionar status ao erro se disponível
+          if (errorContext?.status) {
+            errorMessage = `[HTTP ${errorContext.status}] ${errorMessage}`;
+          }
+
+          throw new Error(errorMessage || "Erro ao criar organização");
         }
-        
+
+        if ((result as any)?.error) {
+          console.error("❌ Edge Function returned error in body:", (result as any).error);
+          throw new Error((result as any).error);
+        }
+
         console.log("✅ Organização criada com sucesso!");
       }
     },
@@ -520,7 +573,7 @@ export default function OrganizationForm() {
       toast.loading("Criando usuário...", { id: "create-user" });
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError || !session) {
         console.error("Erro ao obter sessão:", sessionError);
         throw new Error("Sessão expirada. Por favor, faça login novamente.");
@@ -575,7 +628,7 @@ export default function OrganizationForm() {
       toast.loading("Deletando usuário...", { id: "delete-user" });
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError || !session) {
         console.error("Erro ao obter sessão:", sessionError);
         throw new Error("Sessão expirada. Por favor, faça login novamente.");
@@ -701,14 +754,14 @@ export default function OrganizationForm() {
               {errors.subscription_plan && (
                 <p className="text-xs text-red-400 mt-1">{errors.subscription_plan.message}</p>
               )}
-              
+
               {/* Descrição do Plano Selecionado */}
               {subscriptionPlan && plans.find(p => p.plan_id === subscriptionPlan) && (
                 <div className="mt-3 p-4 rounded-lg bg-purple-900/20 border border-purple-800/30">
                   <p className="text-sm text-purple-200 mb-3">
                     {plans.find(p => p.plan_id === subscriptionPlan)?.plan_description}
                   </p>
-                  
+
                   {/* Recursos do Plano */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">
@@ -776,7 +829,7 @@ export default function OrganizationForm() {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Limites do Plano */}
                     <div className="mt-3 pt-3 border-t border-purple-800/30">
                       <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide mb-2">
@@ -1195,8 +1248,8 @@ export default function OrganizationForm() {
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs text-purple-400 capitalize">
-                              {user.role === 'admin' ? 'Administrador' : 
-                               user.role === 'doctor' ? 'Médico' : 'Assistente'}
+                              {user.role === 'admin' ? 'Administrador' :
+                                user.role === 'doctor' ? 'Médico' : 'Assistente'}
                             </span>
                             <span className="text-purple-600">•</span>
                             <span className={`text-xs ${user.is_active ? 'text-green-400' : 'text-red-400'}`}>
@@ -1241,10 +1294,10 @@ export default function OrganizationForm() {
             {uploadingLogo
               ? "Enviando logo..."
               : saveMutation.isPending
-              ? "Salvando..."
-              : isEditing
-              ? "Atualizar"
-              : "Criar Organização"}
+                ? "Salvando..."
+                : isEditing
+                  ? "Atualizar"
+                  : "Criar Organização"}
           </Button>
         </div>
       </form>

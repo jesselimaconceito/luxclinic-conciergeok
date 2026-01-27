@@ -1,0 +1,6 @@
+# Configuração para a Edge Function create-organization
+# Desabilitar verificação JWT automática porque fazemos a verificação manualmente
+# usando o service role key para validar se o usuário é super admin
+
+[functions.create-organization]
+verify_jwt = false

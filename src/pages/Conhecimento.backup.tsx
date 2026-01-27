@@ -60,12 +60,10 @@ export default function Conhecimento() {
       console.log("Filtro: metadata->>'organizacao' =", organization.slug);
 
       // Buscar documentos da tabela geral filtrados por organização
-      // Ordenar por created_at decrescente para agrupar corretamente
       const { data, error } = await supabase
         .from("documents_geral")
         .select('*')
-        .eq('metadata->>organizacao', organization.slug)
-        .order('created_at', { ascending: false });
+        .eq('metadata->>organizacao', organization.slug);
 
       if (error) {
         console.error("❌ Erro ao buscar documentos:", error);
@@ -74,46 +72,22 @@ export default function Conhecimento() {
 
       console.log("✅ Documentos encontrados:", data?.length || 0);
 
-      // Agrupar documentos
-      // 1. Se tiver título, agrupa pelo título
-      // 2. Se NÃO tiver título (null), agrupa pela data de criação (com precisão de segundos)
-      //    Isso assume que chunks do mesmo documento foram criados quase simultaneamente
-      const uniqueDocsMap = new Map();
+      if (data && data.length > 0) {
+        console.log("📋 Estrutura do primeiro documento:", Object.keys(data[0]));
+        console.log("📄 Primeiro documento:", data[0]);
+      }
 
-      data?.forEach(doc => {
-        let key;
-        let displayName;
+      // Filtrar documentos únicos por título (títulos iguais = mesmo arquivo)
+      const uniqueDocuments = data ? Array.from(
+        new Map(
+          data.map(doc => [
+            doc.titulo, // Chave: título do documento
+            doc // Valor: documento completo
+          ])
+        ).values()
+      ) : [];
 
-        if (doc.titulo) {
-          key = `TITLE_${doc.titulo}`;
-          displayName = doc.titulo;
-        } else {
-          // Fallback para documentos sem título: agrupar por minuto de criação
-          // Isso agrupa chunks do mesmo upload
-          // @ts-ignore
-          const dateDate = new Date(doc.created_at);
-          // Arredondar para o minuto para agrupar chunks
-          dateDate.setSeconds(0, 0);
-          const timeKey = dateDate.toISOString();
-
-          key = `TIME_${timeKey}`;
-          // @ts-ignore
-          displayName = `Documento Importado (${new Date(doc.created_at).toLocaleDateString()} ${new Date(doc.created_at).toLocaleTimeString()})`;
-        }
-
-        if (!uniqueDocsMap.has(key)) {
-          uniqueDocsMap.set(key, {
-            ...doc,
-            titulo: displayName, // Usar o nome display para exibição
-            originalTitle: doc.titulo, // Guardar título original (pode ser null)
-            groupKey: key // Identificador para buscar detalhes depois
-          });
-        }
-      });
-
-      const uniqueDocuments = Array.from(uniqueDocsMap.values());
-
-      console.log("📚 Documentos únicos agrupados:", uniqueDocuments.length);
+      console.log("📚 Documentos únicos (títulos distintos):", uniqueDocuments.length);
       console.log("=======================");
 
       setDocuments(uniqueDocuments);
@@ -131,7 +105,7 @@ export default function Conhecimento() {
     loadDocuments();
   }, [organization?.slug]);
 
-  // Função para carregar conteúdo completo de um documento
+  // Função para carregar conteúdo completo de um documento (todas as linhas com o mesmo título)
   const handleViewDocumentDetails = async (doc: any) => {
     if (!organization?.slug) {
       toast.error("Organização não encontrada");
@@ -141,41 +115,25 @@ export default function Conhecimento() {
     try {
       setIsLoadingDocumentContent(true);
 
+      const titulo = doc.titulo;
+
       console.log("🔍 === BUSCAR DETALHES DO DOCUMENTO ===");
       console.log("Documento:", doc);
+      console.log("Título:", titulo);
+      console.log("Tabela: documents_geral");
+      console.log("Filtro 1: metadata->>'organizacao' =", organization.slug);
+      console.log("Filtro 2: titulo =", titulo);
 
-      let query = supabase
+      // Buscar TODAS as linhas com este título da mesma organização
+      const { data, error } = await supabase
         .from("documents_geral")
         .select('*')
-        .eq('metadata->>organizacao', organization.slug);
+        .eq('metadata->>organizacao', organization.slug)
+        .eq('titulo', titulo);
 
-      // Lógica de filtro baseada no agrupamento feito anteriormente
-      if (doc.groupKey && doc.groupKey.startsWith('TITLE_')) {
-        // Busca por título exato
-        query = query.eq('titulo', doc.originalTitle);
-      } else if (doc.groupKey && doc.groupKey.startsWith('TIME_')) {
-        // Busca por range de tempo (mesmo minuto)
-        const dateStr = doc.created_at;
-        const startDate = new Date(dateStr);
-        startDate.setSeconds(0, 0);
-        const endDate = new Date(startDate);
-        endDate.setMinutes(startDate.getMinutes() + 1); // +1 minuto de tolerância
-
-        query = query
-          .gte('created_at', startDate.toISOString())
-          .lt('created_at', endDate.toISOString())
-          .is('titulo', null); // Garantir que são os sem título
-      } else {
-        // Fallback antigo (por segurança)
-        if (doc.titulo) {
-          query = query.eq('titulo', doc.titulo);
-        } else {
-          // Último recurso: ID exato (só traria 1 chunk, mas evita crash)
-          query = query.eq('id', doc.id);
-        }
-      }
-
-      const { data, error } = await query;
+      console.log("Query executada");
+      console.log("Resultado:", data);
+      console.log("Erro:", error);
 
       if (error) {
         console.error("❌ Erro ao buscar conteúdo:", error);
@@ -184,7 +142,12 @@ export default function Conhecimento() {
 
       console.log(`✅ Encontradas ${data?.length || 0} partes para este documento`);
 
-      // Combinar todo o conteúdo
+      if (data && data.length > 0) {
+        console.log("Primeira parte:", data[0]);
+        console.log("Campos disponíveis:", Object.keys(data[0]));
+      }
+
+      // Combinar todo o conteúdo (títulos iguais = mesmo arquivo)
       const combinedContent = data
         ?.map(row => row.content || "")
         .filter(content => content.trim())
@@ -197,6 +160,10 @@ export default function Conhecimento() {
         pageCount: data?.length || 0
       };
 
+      console.log("📄 Conteúdo combinado:", combinedContent?.length, "caracteres");
+      console.log("📊 Total de partes:", aggregatedDoc.pageCount);
+      console.log("=======================");
+
       setDocumentToView(aggregatedDoc);
 
     } catch (error: any) {
@@ -207,73 +174,24 @@ export default function Conhecimento() {
     }
   };
 
-  // Função para apagar documento (todas as partes com o mesmo título ou grupo)
+  // Função para apagar documento (todas as partes com o mesmo título)
   const handleDeleteDocument = async () => {
     if (!documentToDelete || !organization?.slug) return;
 
     try {
       setIsDeletingDocument(true);
 
+      const titulo = documentToDelete.titulo;
+
       console.log("🗑️ Deletando documento:");
       console.log("  Tabela: documents_geral");
-      console.log("  Info:", documentToDelete);
+      console.log("  Título:", titulo);
+      console.log("  Organização:", organization.slug);
 
-      // Construir filtro para deleção
-      let deleteFilter = {};
-
-      if (documentToDelete.groupKey && documentToDelete.groupKey.startsWith('TITLE_')) {
-        deleteFilter = { titulo: documentToDelete.originalTitle };
-      } else if (documentToDelete.groupKey && documentToDelete.groupKey.startsWith('TIME_')) {
-        // Para deletar por tempo, precisamos mandar os IDs ou um range
-        // O N8N pode não suportar deleção complexa por range de data facilmente na webhook atual
-        // Então vamos buscar os IDs primeiro e mandar deletar por ID se a webhook suportar,
-        // OU vamos mandar o título como null e torcer para o N8N lidar (arriscado).
-
-        // Melhor estratégia: A webhook original 'rag-deletar-unico' espera 'titulo'.
-        // Se title for null, pode falhar ou deletar tudo null.
-
-        // Vamos adaptar: Enviamos um metadado especial ou usamos a deleção direta aqui se possível?
-        // Como o user falou que "deveria servir tambem para apagar", vamos tentar mandar
-        // o titulo display para log, mas o filtro real tem que ser inteligente.
-
-        // Se a webhook deleta por título, não vai funcionar para os nulos.
-        // Vamos assumir que deletaremos manualmente via Supabase aqui para garantir,
-        // ou enviamos um payload modificado e esperamos que o N8N seja ajustado futuramente.
-
-        // POR SEGURANÇA NO FRONTEND:
-        // Se for via webhook N8N e ela só aceita titulo, estamos limitados.
-        // Vou tentar deletar via Client Supabase direto para garantir que funcione IMEDIATAMENTE.
-        // (Se as policies permitirem delete, o que parecem permitir)
-
-        const dateStr = documentToDelete.created_at;
-        const startDate = new Date(dateStr);
-        startDate.setSeconds(0, 0);
-        const endDate = new Date(startDate);
-        endDate.setMinutes(startDate.getMinutes() + 1);
-
-        console.log("Deletando diretamente via Supabase (fallback para null title)");
-
-        const { error } = await supabase
-          .from('documents_geral')
-          .delete()
-          .eq('metadata->>organizacao', organization.slug)
-          .is('titulo', null)
-          .gte('created_at', startDate.toISOString())
-          .lt('created_at', endDate.toISOString());
-
-        if (error) throw error;
-
-        toast.success("Documento deletado com sucesso!");
-        await loadDocuments();
-        return; // Sai da função, não chama webhook
-      } else {
-        deleteFilter = { titulo: documentToDelete.titulo };
-      }
-
-      // Se chegamos aqui, tem título, usa o fluxo normal do N8N
+      // Enviar para webhook de deleção
       const payload = {
         tableName: "documents_geral",
-        titulo: documentToDelete.originalTitle || documentToDelete.titulo,
+        titulo: titulo,
         organizacao: organization.slug,
         organizationId: organization.id,
         organizationName: organization.name,
