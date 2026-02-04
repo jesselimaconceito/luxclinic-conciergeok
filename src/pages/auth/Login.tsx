@@ -47,8 +47,15 @@ export default function Login() {
       // Aguardar um pouco para garantir que o profile foi carregado
       // O redirecionamento será feito pelo useEffect acima
       await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-      // Erro já tratado no AuthContext
+    } catch (error: any) {
+      console.error('❌ Erro detalhado no submit do Login:', {
+        message: error.message,
+        name: error.name,
+        code: error.code,
+        status: error.status,
+        fullError: error
+      });
+      // Erro já tratado no AuthContext (toast), mas mantemos o log aqui para debug
       setLoading(false);
     }
   };

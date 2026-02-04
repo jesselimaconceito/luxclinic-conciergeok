@@ -12,7 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Isso evita múltiplas instâncias e problemas de AbortError
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storage: window.localStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
