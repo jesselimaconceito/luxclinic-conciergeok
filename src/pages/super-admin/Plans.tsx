@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Crown, Check, X, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button"; // IMPORT Button
+import { Crown, Check, X, AlertCircle, Edit, Settings2 } from "lucide-react"; // IMPORT Edit icon
 import { cn } from "@/lib/utils";
+import { PlanEditorDialog } from "@/components/super-admin/PlanEditorDialog"; // IMPORT Dialog
 
 interface PlanConfig {
-  id: string;
+  id: string; // Ensure ID is present
   plan_id: string;
   plan_name: string;
   plan_description: string | null;
@@ -46,6 +49,9 @@ const secondaryFeatures = [
 ];
 
 export default function Plans() {
+  const [editingPlan, setEditingPlan] = useState<PlanConfig | null>(null); // State for editing
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
   // Carregar planos
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['admin-subscription-plans'],
@@ -54,7 +60,7 @@ export default function Plans() {
         .from('subscription_plan_configs')
         .select('*')
         .order('plan_id', { ascending: true });
-      
+
       if (error) throw error;
       return data as PlanConfig[];
     },
@@ -80,6 +86,11 @@ export default function Plans() {
     }
   };
 
+  const handleEditClick = (plan: PlanConfig) => {
+    setEditingPlan(plan);
+    setIsEditorOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -91,34 +102,49 @@ export default function Plans() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-purple-100">Planos de Assinatura</h1>
-        <p className="text-purple-400 mt-1">
-          Visualize os planos disponíveis e seus recursos
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-purple-100">Planos de Assinatura</h1>
+          <p className="text-purple-400 mt-1">
+            Gerencie e personalize os recursos de cada plano
+          </p>
+        </div>
       </div>
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {plans.map((plan) => (
-          <Card 
+          <Card
             key={plan.plan_id}
             className={cn(
-              "border-2 transition-all",
+              "border-2 transition-all relative group",
               getPlanColor(plan.plan_id)
             )}
           >
+            {/* Edit Button - Visible on Hover or Always */}
+            <div className="absolute top-4 right-4 z-10 opacity-100 transition-opacity">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8 px-2 bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600"
+                onClick={() => handleEditClick(plan)}
+              >
+                <Settings2 className="h-4 w-4 mr-1.5" />
+                Editar Plano
+              </Button>
+            </div>
+
             <CardHeader>
               <div className="flex items-center gap-3">
                 <Crown className={cn("h-6 w-6", getCrownColor(plan.plan_id))} />
-                <div>
+                <div className="pr-16"> {/* Padding for edit button */}
                   <CardTitle className="text-purple-100">{plan.plan_name}</CardTitle>
                   <CardDescription className="text-purple-400 mt-1">
                     {plan.plan_description}
                   </CardDescription>
                 </div>
               </div>
-              
+
               {/* Preço */}
               <div className="mt-4">
                 {plan.price_monthly ? (
@@ -146,8 +172,8 @@ export default function Plans() {
                   {mainFeatures.map((feature) => {
                     const isEnabled = plan[feature.key as keyof PlanConfig] as boolean;
                     return (
-                      <div 
-                        key={feature.key} 
+                      <div
+                        key={feature.key}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-lg",
                           isEnabled ? "bg-green-500/10" : "bg-slate-800/30"
@@ -187,8 +213,8 @@ export default function Plans() {
                   {secondaryFeatures.map((feature) => {
                     const isEnabled = plan[feature.key as keyof PlanConfig] as boolean;
                     return (
-                      <div 
-                        key={feature.key} 
+                      <div
+                        key={feature.key}
                         className="flex items-center gap-2"
                       >
                         {isEnabled ? (
@@ -245,23 +271,12 @@ export default function Plans() {
         ))}
       </div>
 
-      {/* Info Alert */}
-      <Card className="border-purple-500/30 bg-purple-500/5">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-purple-400 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-purple-200">
-                Sobre os Planos
-              </p>
-              <p className="text-xs text-purple-300">
-                Os recursos de cada plano são fixos. Para alterar o plano de uma organização, 
-                acesse a página de edição da organização em "Organizações".
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PlanEditorDialog
+        plan={editingPlan}
+        open={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+      />
+
     </div>
   );
 }

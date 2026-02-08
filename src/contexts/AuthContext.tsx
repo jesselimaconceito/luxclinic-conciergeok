@@ -33,6 +33,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_ORG_KEY);
   };
 
+  const recordLogin = async (userId: string) => {
+    try {
+      // Tenta obter IP e Localização de forma simples (best effort)
+      let ipData = { ip: 'unknown', city: 'unknown', region: 'unknown', country: 'unknown' };
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          ipData = await res.json();
+        }
+      } catch (e) {
+        // Silently fail external IP check
+      }
+
+      const { error } = await (supabase as any)
+        .from('login_history')
+        .insert({
+          user_id: userId,
+          ip_address: ipData.ip,
+          user_agent: navigator.userAgent,
+          location: {
+            city: ipData.city,
+            region: ipData.region,
+            country: ipData.country
+          }
+        });
+
+      if (error) console.error('Error logging login:', error);
+    } catch (e) {
+      console.error('Error in recordLogin:', e);
+    }
+  };
+
   const loadUserData = async (userId: string) => {
     if (isLoadingDataRef.current) return;
     isLoadingDataRef.current = true;
@@ -40,63 +72,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('📥 Carregando dados do usuário:', userId);
 
-      // Usar cache enquanto carrega
+      // Usar cache de IMEDIATO se disponível
       const cachedProfileStr = localStorage.getItem(STORAGE_PROFILE_KEY);
       const cachedOrgStr = localStorage.getItem(STORAGE_ORG_KEY);
+      let loadedFromCache = false;
 
-      if (cachedProfileStr && !profile) {
+      if (cachedProfileStr) {
         try {
           const cachedProfile = JSON.parse(cachedProfileStr);
           if (cachedProfile.id === userId) {
             setProfile(cachedProfile);
+            profileLoadedRef.current = true; // Assume loaded if cached
             if (cachedOrgStr) setOrganization(JSON.parse(cachedOrgStr));
+
+            console.log('⚡ Cache encontrado e aplicado imediatamente');
+            setLoading(false); // Libera UI imediatamente
+            loadedFromCache = true;
           }
         } catch (e) {
           console.warn('Cache inválido');
         }
       }
 
-      // Buscar dados atualizados
-      const { data: profileData, error: profileError } = await (supabase as any)
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Define um timeout para a requisição ao Supabase (ex: 5 segundos)
+      const fetchPromise = async () => {
+        const { data: profileData, error: profileError } = await (supabase as any)
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
 
-      if (profileError) {
-        profileLoadedRef.current = false;
-        throw profileError;
-      }
+        if (profileError) throw profileError;
+        return profileData;
+      };
 
-      if (profileData) {
-        setProfile(profileData);
-        profileLoadedRef.current = true;
-        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profileData));
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
 
-        if (profileData.organization_id && !profileData.is_super_admin) {
-          const { data: orgData, error: orgError } = await (supabase as any)
-            .from('organizations')
-            .select('*')
-            .eq('id', profileData.organization_id)
-            .single();
+      try {
+        const profileData: any = await Promise.race([fetchPromise(), timeoutPromise]);
 
-          if (orgData) {
-            setOrganization(orgData);
-            localStorage.setItem(STORAGE_ORG_KEY, JSON.stringify(orgData));
+        if (profileData) {
+          setProfile(profileData);
+          profileLoadedRef.current = true;
+          localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profileData));
+
+          if (profileData.organization_id && !profileData.is_super_admin) {
+            const { data: orgData } = await (supabase as any)
+              .from('organizations')
+              .select('*')
+              .eq('id', profileData.organization_id)
+              .single();
+
+            if (orgData) {
+              setOrganization(orgData);
+              localStorage.setItem(STORAGE_ORG_KEY, JSON.stringify(orgData));
+            }
           }
-        } else {
-          setOrganization(null);
-          localStorage.removeItem(STORAGE_ORG_KEY);
+        }
+      } catch (error: any) {
+        console.warn('⚠️ Falha ao buscar dados frescos (timeout ou erro):', error);
+        // Se já carregou do cache, ignoramos o erro de rede/timeout
+        if (!loadedFromCache) {
+          // Se não temos cache e deu erro, infelizmente temos que lidar com isso.
+          // Mas para evitar "travamento", vamos liberar o loading mesmo assim se for timeout
+          if (error.message === 'Timeout' || error.message?.includes('fetch')) {
+            console.log('⚠️ Timeout mas liberando UI (modo offline/lento)');
+          } else {
+            throw error; // Erros de auth reais repassamos
+          }
         }
       }
 
+      // Registrar login em background
+      recordLogin(userId);
+
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('Erro crítico ao carregar dados:', error);
       profileLoadedRef.current = false;
-      // Não fazemos logout aqui para evitar loop em caso de erro de rede
     } finally {
       isLoadingDataRef.current = false;
-      // IMPORTANTE: Só liberamos o loading após tentar carregar os dados
       setLoading(false);
     }
   };
@@ -106,7 +162,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        // Bloqueia redirecionamentos até a sessão ser verificada
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) throw error;
@@ -118,7 +173,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserData(session.user.id);
         } else {
           console.log('🔒 Sem sessão inicial');
-          if (mounted) setLoading(false);
+          const hasCache = localStorage.getItem(STORAGE_PROFILE_KEY);
+          // Se tem cache, libera a UI rapidinho pra não piscar
+          if (hasCache && mounted) {
+            setLoading(false);
+          } else {
+            if (mounted) setLoading(false);
+          }
         }
       } catch (error) {
         console.error('Erro na inicialização da auth:', error);
@@ -136,12 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearState();
         setLoading(false);
       } else if (session?.user) {
-        // Otimização Refinada: Só ignora se o ID bater E o perfil já estiver carregado
         if (userIdRef.current === session.user.id && profileLoadedRef.current) {
-          console.log('🔄 Sessão confirmada (sem refetch)');
           return;
         }
-
         userIdRef.current = session.user.id;
         setUser(session.user);
         await loadUserData(session.user.id);
@@ -152,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Dependências vazias = roda apenas uma vez
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
